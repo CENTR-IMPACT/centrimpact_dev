@@ -3,23 +3,26 @@ update_workflow_step <- function(rv_workflow, step, stage, session) {
   rv_workflow$step <- step
   rv_workflow$stage <- stage
   
+  # Set the workflow_step to the step name for display
+  rv_workflow$workflow_step <- step
+  
   logger::log_info("Updating workflow step: {step}, stage: {stage}")
   
   # Determine which icon to update
   workflow_id <- dplyr::case_when(
-    step == "setup" ~ "project_setup_icon",
-    step == "load" ~ "load_data_icon",
-    step == "clean" ~ "clean_data_icon",
-    step == "calculate" ~ "analyze_data_icon",
-    step == "visualize" ~ "visualize_data_icon",
-    step == "generate" ~ "generate_report_icon"
+    step == "Project Setup" ~ "project_setup_icon",
+    step == "Upload Data" ~ "load_data_icon",
+    step == "Clean Data" ~ "clean_data_icon",
+    step == "Calculate Scores" ~ "analyze_data_icon",
+    step == "Visualize Findings" ~ "visualize_data_icon",
+    step == "Generate Report" ~ "generate_report_icon"
   )
   
   # Set the color based on the stage
   workflow_color <- dplyr::case_when(
-    stage == "init" ~ "#888888",
+    stage == "initiated" ~ "#C2A14D",
     stage == "in progress" ~ "#E18B4E",
-    stage == "complete" ~ "#4B7F52",
+    stage == "complete" ~ "#8ba086",
     TRUE ~ "#D3D3D3"
   )
   

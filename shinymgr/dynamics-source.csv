@@ -1,0 +1,105 @@
+domain,dimension,descriptor,salience
+Contexts,Challenge Origin,There were ongoing negotiations between the Research Team and the Community,1
+Contexts,Challenge Origin,The Community identified the challenge or issue,0.95
+Contexts,Challenge Origin,The Community refined the challenge or issue,0.9
+Contexts,Challenge Origin,The Research Team refined the challenge or issue,0.84
+Contexts,Challenge Origin,The Research Team identified the challenge or issue,0.78
+Contexts,Diversity,There are overlaps in identity memberships between the Research Team and the Community,1
+Contexts,Diversity,Underrepresented and/or marginalized identities are a part of the Research Team,0.95
+Contexts,Diversity,The Research Team is diverse in multiple ways and represents a range of identities,0.9
+Contexts,Diversity,The Community is diverse in multiple ways and represents a range of identities,0.84
+Contexts,Diversity,Underrepresented and/or marginalized identities are a part of the Community,0.78
+Contexts,Resources,There were ongoing negotiations between the Research Team and the Community about the commitment of resources,1
+Contexts,Resources,The Research Team contributed resources,0.95
+Contexts,Resources,The Community contributed resources,0.9
+Contexts,Resources,All resources were provided by the Research Team,0.84
+Contexts,Resources,All resources were provided by the Community,0.78
+Contexts,Trust,Building on a history of trust and collaboration the Community reached out to the Research Team,1
+Contexts,Trust,Building on a history of trust and collaboration the Research Team reached out to the Community,0.95
+Contexts,Trust,There were ongoing trust-building efforts between the Research Institution and the Community,0.9
+Contexts,Trust,Despite a history of mistrust the Community reached out to the Research Team,0.84
+Contexts,Trust,Despite a history of mistrust the Research Team reached out to the Community,0.78
+Partnership Processes,Beneficence,There were ongoing discussions to ensure both the Community and the Research Team would benefit,1
+Partnership Processes,Beneficence,Benefits built upon and strengthened the Community's cultural capital and wealth and agency,0.95
+Partnership Processes,Beneficence,Benefits aligned with the goals and purposes of the project,0.9
+Partnership Processes,Beneficence,The Community Partners benefitted from the processes,0.84
+Partnership Processes,Beneficence,The Research Team benefitted from the processes,0.78
+Partnership Processes,Decision Making,Decision making was conducted through clear and understood processes,1
+Partnership Processes,Decision Making,Decision making processes recognized and supported the community's cultural capital and agency,0.95
+Partnership Processes,Decision Making,Community Partners contributed to the decision making processes,0.9
+Partnership Processes,Decision Making,The Research Team contributed to the decision making processes,0.84
+Partnership Processes,Decision Making,Decisions were made to align the ongoing work with the goals and purposes of the project,0.78
+Partnership Processes,Reflection,The Research Team and Community partners engaged in and benefitted from intentional collaborative reflection activities,1
+Partnership Processes,Reflection,Community partners engaged in and benefitted from intentional reflection activities,0.95
+Partnership Processes,Reflection,Strategies and new practices were developed through intentional reflection activities,0.9
+Partnership Processes,Reflection,Lessons learned for all participants were identified through intentional reflection activities,0.84
+Partnership Processes,Reflection,The Research Team engaged in and benefitted from intentional reflection activities,0.78
+Partnership Processes,Tool Construction,The Community contributed to building the tools,1
+Partnership Processes,Tool Construction,Recognized and supported the Community's cultural wealth and capital and agency,0.95
+Partnership Processes,Tool Construction,The Research Team contributed to building the tools,0.9
+Partnership Processes,Tool Construction,Made processes more clear and understandable,0.84
+Partnership Processes,Tool Construction,Promoted Efficiency,0.78
+Interventions and Research,Design and Facilitation,The Research Team contributed to the design and facilitation of interventions and research,1
+Interventions and Research,Design and Facilitation,The Community contributed to the design and facilitation of interventions and research,0.95
+Interventions and Research,Design and Facilitation,The design and facilitation of interventions and research recognized and supported the Community's cultural wealth and capital and agency,0.9
+Interventions and Research,Design and Facilitation,The design and facilitation of interventions and research provided opportunities to generate new understandings for the discipline(s) and to benefit the Community,0.84
+Interventions and Research,Design and Facilitation,The design and facilitation of interventions and research aligned with the goals and purposes of the project,0.78
+Interventions and Research,Duration,Multiple Years,1
+Interventions and Research,Duration,A Year or Less,0.95
+Interventions and Research,Duration,A Semester or Less,0.9
+Interventions and Research,Duration,A Month or Less,0.84
+Interventions and Research,Duration,A Week or Less,0.78
+Interventions and Research,Frequency,At least Monthly,1
+Interventions and Research,Frequency,At least Weekly,0.95
+Interventions and Research,Frequency,More than once,0.9
+Interventions and Research,Frequency,Daily or more,0.84
+Interventions and Research,Frequency,Once,0.78
+Interventions and Research,Research Questions,The Community contributed to the research question or questions to be explored,1
+Interventions and Research,Research Questions,The Research Team contributed to the research question or questions to be explored,0.95
+Interventions and Research,Research Questions,The research question or questions recognized and supported the Community's cultural wealth and capital and agency,0.9
+Interventions and Research,Research Questions,The research question or questions provided opportunities to generate new understandings for the discipline(s) of the Research Team and to benefit the Community,0.84
+Interventions and Research,Research Questions,The research question or questions were designed to align with the goals and purposes of the project,0.78
+Interventions and Research,Voice,Materials and Events utilized Community-Centered Language,1
+Interventions and Research,Voice,Materials and Events were fit specifically for local settings,0.95
+Interventions and Research,Voice,Materials and Events were aligned with the goals and purposes of the project,0.9
+Interventions and Research,Voice,Materials and Events were culture-centered activities,0.84
+Interventions and Research,Voice,Materials and Events utilized Academic Language,0.78
+Engaged Learning,Civic Learning,Opportunities are offered for meaning-making and making connections between civic learning and real-world contexts,1
+Engaged Learning,Civic Learning,Course and community activities are facilitated to support civic learning,0.95
+Engaged Learning,Civic Learning,Civic learning expectations and outcomes are included in the course syllabus,0.9
+Engaged Learning,Civic Learning,There is an alignment across the syllabus the activities and the assessments to ensure civic learning is assessed throughout the course,0.84
+Engaged Learning,Civic Learning,Opportunities are offered for meaning-making and making connections between civic learning and academic work in the course,0.78
+Engaged Learning,Integration,The Community is included in the decision making around the inclusion of engaged learning in the broader research project,1
+Engaged Learning,Integration,Students' engagement activities with the Community support research and intervention activities by building capacities and capabilities and/or generating useful understandings and/or practices,0.95
+Engaged Learning,Integration,Course artifacts and outputs support research and intervention activities by building capacities and capabilities and/or generating useful understandings and/or practices,0.9
+Engaged Learning,Integration,Relationships and dynamics between the Instructor the Community and the Students are similar to the relationships and dynamics of the broader research project,0.84
+Engaged Learning,Learning Goals,Critical reflection activities are used to deepen collaborative relationships with the Community,1
+Engaged Learning,Learning Goals,Critical reflection activities are offered that help students make connections across course content and beyond,0.95
+Engaged Learning,Learning Goals,There are ongoing critical reflection activities with scaffolding that allow deepened reflections on engaged experiences,0.9
+Engaged Learning,Learning Goals,Expectations for critical reflection are built into the course requirements and are stated in the syllabus,0.84
+Engaged Learning,Learning Goals,Critical reflection activities are used to enhance course content,0.78
+Engaged Learning,Reciprocity,There is ongoing collaboration between the Community the Instructor and Students in all phases of the project or engaged experience,1
+Engaged Learning,Reciprocity,Students are aware of their accountability to contributing to the benefit of the Community,0.95
+Engaged Learning,Reciprocity,Activities are co-constructed by the Instructor Community and Students that benefit the Community and enrich Student learning,0.9
+Engaged Learning,Reciprocity,Expectations around Community benefit and Student learning are included in the course syllabus,0.84
+Engaged Learning,Reciprocity,The Instructor facilitates an activity or activities that benefit the Community and enrich Student learning,0.78
+Outcomes,Capacities and Capabilities Strengthened,Participant and/or Community well-being,1
+Outcomes,Capacities and Capabilities Strengthened,Participant and/or Community agency,0.95
+Outcomes,Capacities and Capabilities Strengthened,Mutual trust and respect between the Community and the Research Team and/or the Research Institution,0.9
+Outcomes,Capacities and Capabilities Strengthened,The fabric and cohesion of the Community,0.84
+Outcomes,Capacities and Capabilities Strengthened,The distribution of opportunity and/or attainment,0.78
+Outcomes,Goals Met,Mostly for the Community some for the Research Team,1
+Outcomes,Goals Met,Entirely for the Community,0.95
+Outcomes,Goals Met,Equally for the Research Team and the Community,0.9
+Outcomes,Goals Met,Mostly for the Research Team some for the Community,0.84
+Outcomes,Goals Met,Entirely for the Research Team,0.78
+Outcomes,Outputs Delivered,Community-Based Outputs that Reach Broader Community Members and Institutions,1
+Outcomes,Outputs Delivered,Community-Based Outputs that Benefit Direct Community Partners,0.95
+Outcomes,Outputs Delivered,Academic and/or Community-Based Outputs in a Range of Venues,0.9
+Outcomes,Outputs Delivered,Academic Outputs that Advance the Field,0.84
+Outcomes,Outputs Delivered,Academic Outputs that Benefit the Research Team,0.78
+Outcomes,Sustainability,Concrete strategies for further engagement,1
+Outcomes,Sustainability,Available resources,0.95
+Outcomes,Sustainability,Trust and respect in partnership,0.9
+Outcomes,Sustainability,Ongoing shared vision and common goals,0.84
+Outcomes,Sustainability,Infrastructures for further engagement,0.78

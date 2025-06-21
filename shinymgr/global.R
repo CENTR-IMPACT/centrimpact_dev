@@ -1,4 +1,16 @@
 
+# Configure logger
+if (!requireNamespace("logger", quietly = TRUE)) {
+  install.packages("logger")
+}
+library(logger)
+library(phosphoricons)
+
+# Set up logger to write to console with timestamps and log level
+log_threshold(INFO)
+log_layout(layout_glue_colors)
+log_info("Logger initialized")
+
 # load required shiny framework packages
 library(shinymgr)
 
@@ -29,7 +41,7 @@ app_mods <- list.files(
 sapply(app_mods, FUN = source)
 
 # source in all utils
-source("utils/utils_workflow.R")
+#source("utils/utils_workflow.R")
 utils_mods <- list.files(
   path = paste0(shinyMgrPath, "/utils"),
   full.names = TRUE
