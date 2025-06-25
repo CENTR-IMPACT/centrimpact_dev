@@ -17,20 +17,31 @@ mod_home_ui <- function(id) {
     bslib::card(
       fluidRow(
         column(
-          width = 2,
+          width = 12,
+          style = "text-align: center;",
+          img(
+            src = "centr_logo.png",
+            class = "header-logo",
+            style = "max-width: 80%; height: auto; max-height: 120px; margin: 0 auto 20px; display: block;"
+          )
+        ),
+        column(
+          width = 8,
+            h2("CEnTR*IMPACT Toolkit"),
+            p("Welcome to the CEnTR*IMPACT Toolkit. Use the tabs above to navigate through the workflow."),
+            style = "font-family: 'Lato', sans-serif; margin-bottom: 20px;"
+        )
+      ),
+      fluidRow(
+        column(
+          width = 12,
           style = "text-align: center;",
           img(
             src = "centr-logo.png",
             class = "header-logo",
             style = "max-height: 180px; width: auto; margin: 0 auto 20px; display: block;"
           )
-        ),
-        column(
-          width = 10,
-            h2("CEnTR*IMPACT Toolkit"),
-            p("Welcome to the CEnTR*IMPACT Toolkit. Use the tabs above to navigate through the workflow."),
-            style = "font-family: 'Lato', sans-serif; margin-bottom: 20px;"
-        )
+        ) 
       )
     )
   )

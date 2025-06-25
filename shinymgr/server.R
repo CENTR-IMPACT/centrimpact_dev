@@ -2,6 +2,7 @@ source("global.R")
 
 server <- function(input, output, session) {
   
+
   # call database module
   output$my_db_output <- renderUI({
     my_db_ui("my_db")
@@ -98,6 +99,59 @@ server <- function(input, output, session) {
   output$build_app <- renderUI({
     app_builder_ui("app_builder")
   })
+  
+  # Render dynamics score display
+  output$dynamics_score_display <- renderUI({
+    has_score <- !is.null(modules$analyze$dynamics_score) && !is.null(modules$analyze$dynamics_score())
+    score_value <- if (has_score) format(round(as.numeric(modules$analyze$dynamics_score()), 2), nsmall = 2) else "-.--"
+    
+    div(
+      class = if (has_score) "has-score" else "no-score",
+      style = if (!has_score) "color: #D3D3D3;" else "",
+      div(
+        class = "score-value",
+        style = "font-family: 'Jersey 20'; font-weight: 700;",
+        score_value
+      )
+    )
+  })
+  
+  # Render cascade score display
+  output$cascade_score_display <- renderUI({
+    has_score <- !is.null(modules$analyze$cascade_score) && !is.null(modules$analyze$cascade_score())
+    score_value <- if (has_score) format(round(as.numeric(modules$analyze$cascade_score()), 2), nsmall = 2) else "-.--"
+    
+    div(
+      class = if (has_score) "has-score" else "no-score",
+      style = if (!has_score) "color: #D3D3D3;" else "",
+      div(
+        class = "score-value",
+        style = "font-family: 'Jersey 20'; font-weight: 700;",
+        score_value
+      )
+    )
+  })
+  
+  # Render alignment icon with conditional color
+  output$alignment_icon <- renderUI({
+    has_score <- !is.null(modules$analyze$alignment_score) && !is.null(modules$analyze$alignment_score())
+    icon_style <- if (has_score) "font-size: 1em;" else "font-size: 1em; color: #D3D3D3;"
+    ph("flower-lotus", weight = "regular", style = icon_style)
+  })
+  
+  # Render dynamics icon with conditional color
+  output$dynamics_icon <- renderUI({
+    has_score <- !is.null(modules$analyze$dynamics_score) && !is.null(modules$analyze$dynamics_score())
+    icon_style <- if (has_score) "font-size: 1em;" else "font-size: 1em; color: #D3D3D3;"
+    ph("pulse", weight = "regular", style = icon_style)
+  })
+  
+  # Render cascade icon with conditional color
+  output$cascade_icon <- renderUI({
+    has_score <- !is.null(modules$analyze$cascade_score) && !is.null(modules$analyze$cascade_score())
+    icon_style <- if (has_score) "font-size: 1em;" else "font-size: 1em; color: #D3D3D3;"
+    ph("waveform", weight = "regular", style = icon_style)
+  })
 
   reset_builder <- app_builder_server(
     'app_builder',
@@ -132,8 +186,12 @@ server <- function(input, output, session) {
     shinyMgrPath = shinyMgrPath
   )
   
-  # Define Reactive Variables
+  # Initialize the workflow object
   ns_workflow <- reactiveValues(
+    stage = "Not Started",
+    alignment_data = NULL,
+    dynamics_data = NULL,
+    cascade_data = NULL,
     workflow_step = "pre-init",
     workflow_status = "not started"
   )
@@ -193,6 +251,20 @@ server <- function(input, output, session) {
     )
   })
   
+  # Render alignment score display with default value
+  output$alignment_score_display <- renderUI({
+    has_score <- !is.null(modules$analyze$alignment_score) && !is.null(modules$analyze$alignment_score())
+    score_value <- if (has_score) format(round(as.numeric(modules$analyze$alignment_score()), 2), nsmall = 2) else "-.--"
+    
+    div(
+      class = if (has_score) "has-score" else "no-score",
+      div(
+        class = "score-value",
+        score_value
+      )
+    )
+  })
+  
   output$workflow_stage <- renderUI({
     stage_text <- if (is.null(ns_workflow$stage) || ns_workflow$stage == "") {
       "Status: Not Started"
@@ -211,6 +283,30 @@ server <- function(input, output, session) {
     # Track which modules have been initialized
   setup_initialized <- reactiveVal(FALSE)
   load_clean_initialized <- reactiveVal(FALSE)
+  analyze_initialized <- reactiveVal(FALSE)
+  
+  # Store module instances
+  modules <- reactiveValues(
+    load_clean = NULL,
+    analyze = NULL
+  )
+  
+  # Initialize the load_clean module first
+  modules$load_clean <- mod_load_clean_server(
+    id = "load_clean_1",
+    ns_workflow = ns_workflow
+  )
+  
+  # Initialize the analyze module with access to ns_workflow
+  modules$analyze <- mod_analyze_server(
+    id = "analyze_data_1",
+    ns_workflow = ns_workflow
+  )
+  
+  # Log the initialization
+  message("Modules initialized successfully")
+  analyze_initialized(TRUE)
+  load_clean_initialized(TRUE)
   
   # Track workflow updates to prevent multiple updates
   workflow_updates <- reactiveValues(
@@ -276,7 +372,7 @@ server <- function(input, output, session) {
         tryCatch({
           logger::log_info("Initializing Load Data module...")
           # Initialize the load_clean module with ns_workflow
-          load_clean_module <- mod_load_clean_server(
+          modules$load_clean <- mod_load_clean_server(
             id = "load_clean_1",
             ns_workflow = ns_workflow
           )
@@ -311,6 +407,22 @@ server <- function(input, output, session) {
         )
         workflow_updates$clean_data_initiated <- TRUE
       }
+      
+      # Handle Analyze Data tab
+      if (input$main_navbar == "Analyze Data") {
+        message("Analyze Data tab selected")
+        logger::log_info("Analyze Data tab selected")
+        
+        # Just log the current status, module is already initialized at the top level
+        logger::log_info("Analyze module initialization status: ", analyze_initialized())
+        
+        # Log the current alignment data status
+        if (!is.null(modules$load_clean) && !is.null(modules$load_clean$rv$alignment)) {
+          logger::log_info("Alignment data is available in load_clean module")
+        } else {
+          logger::log_warn("No alignment data available in load_clean module")
+        }
+      }
     }
   }, ignoreInit = TRUE)
   
@@ -321,9 +433,54 @@ server <- function(input, output, session) {
   })
   
   # Observer for skip_overview toggle to switch tabs
-  observeEvent(input$skip_overview, {
-    # Set the target tab based on the toggle state
-    target_tab <- if (isTRUE(input$skip_overview)) {
+  # Track the overview mode state
+  overview_mode <- reactiveVal(FALSE)
+  theme_mode <- reactiveVal("light")
+  snapshot_mode <- reactiveVal(FALSE)
+  
+  # Toggle dark mode when the theme button is clicked
+  observeEvent(input$toggle_theme, {
+    if(theme_mode() == "light") {
+      theme_mode("dark")
+    } else {
+      theme_mode("light")
+    }
+    bslib::toggle_dark_mode(mode = theme_mode(), session = session)
+  })
+
+  
+  # Render the theme indicator icon
+  output$theme_indicator <- renderUI({
+    if (theme_mode() == "dark") {
+      ph("moon-stars", weight = "bold")
+    } else {
+      ph("sun", weight = "bold")
+    }
+  })
+  
+  # Render the overview indicator icon
+  output$overview_indicator <- renderUI({
+    if (isTRUE(overview_mode())) {
+      ph("rocket-launch", weight = "bold")
+    } else {
+      ph("lighthouse", weight = "bold")
+    }
+  })
+  
+  output$snapshot_indicator <- renderUI({
+    if (isTRUE(snapshot_mode())) {
+      ph("disk", weight = "bold")
+    } else {
+      ph("camera", weight = "bold")
+    }
+  })
+  
+  observeEvent(input$overview_mode, {
+    # Toggle the overview mode state
+    overview_mode(!overview_mode())
+    
+    # Set the target tab based on the overview mode state
+    target_tab <- if (isTRUE(overview_mode())) {
       list(
         "setup_1-setup_navbar" = "project details",
         "load_clean_1-load_clean_tabs" = "load_clean_panel",

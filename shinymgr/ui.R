@@ -34,7 +34,7 @@ custom_theme <- bslib::bs_theme(
   "sidebar-fg" = "#4A4A4A"
 )
 
-doto_font <- bslib::font_google("Doto")
+jersey_font <- bslib::font_google("Jersey 20")
 
 ui <- bslib::page_navbar(
   id = "main_navbar",
@@ -42,7 +42,7 @@ ui <- bslib::page_navbar(
   title = "CEnTR*IMPACT",
   header = tags$head(
     tags$link(
-      href = "https://fonts.googleapis.com/css2?family=Doto:wght@400;700&display=swap",
+      href = "https://fonts.googleapis.com/css2?family=Jersey+20&display=swap",
       rel = "stylesheet"
     ),
     tags$style(HTML("
@@ -58,6 +58,24 @@ ui <- bslib::page_navbar(
     }
     .project-info-text {
       color: #D3D3D3;
+    }
+    .no-score {
+      color: #D3D3D3;
+      font-family: 'Jersey 20';
+    }
+    .has-score {
+      color: var(--bs-body-color);
+      font-family: 'Jersey 20';
+    }
+    .score-icon {
+      display: inline-block;
+    }
+    .no-score + .column .score-icon i {
+      color: #D3D3D3;
+    }
+    .has-score + .column .score-icon i {
+      color: var(--bs-body-color);
+    }
       text-transform: uppercase;
       font-weight: 700;
       text-align: center;
@@ -153,172 +171,153 @@ ui <- bslib::page_navbar(
 "))
   ),
   sidebar = bslib::sidebar(
-    position = "right",
+    position = "left",
+    img(
+      src = "centr_logo.png",
+      class = "header-logo",
+      style = "display: block;"
+    ),
     # Project Info Card
     bslib::card(
       bslib::card_header(
-        class = "d-flex align-items-center justify-content-center gap-2",
+        class = "d-flex align-items-center justify-content-center gap-2 project-info-text",
+        style = "font-family: var(--bs-font-code); font-size: 1em; font-weight: bold;",
+        id = "pi_text",
         ph("tree-structure", weight = "bold"),
-        "Project Info"
+        uiOutput(outputId = "project_info_text")
+        #"Project Info"
       ),
       card_body(
-        fluidRow(
-          class = "project-info-text",
-          id = "pi_text",
-          uiOutput(outputId = "project_info_text")
+      fluidRow(
+        column(
+          width = 2,
+          class = "d-flex flex-wrap justify-content-center",
+          style = "text-align: center; font-family: var(--bs-font-code); font-size: 0.75em;",
+          uiOutput("report_output_icons")
         ),
-        fluidRow(
-          column(
-            width = 4,
-            class = "d-flex flex-wrap gap-2 justify-content-center",
-            style = "text-align: center; font-family: var(--bs-font-code); font-size: 0.75em;",
-            uiOutput("report_output_icons")
-          ),
-          column(
-            width = 8,
-            class = "d-flex align-items-center justify-content-center gap-2 project-info-date",
-          id = "pi_date",
-          ph("aperture"),
-          uiOutput(outputId = "project_info_date")
-        )
-      )
-      )
-    ),
-    bslib::card(
-      bslib::card_header(
-        div(
-          class = "d-flex align-items-center justify-content-center gap-2",
-          ph("list-checks", weight = "bold"),
-          "Workflow Progress"
-        )
-      ),
-      card_body(
-        div(
-          class = "d-flex justify-content-center gap-2 workflow-icons",
-          style = "padding: 0.05em;",
-          span(
-            class = "workflow-icon",
-            ph("plant", weight = "regular"),
-            id = "project_setup_icon"
-          ),
-          span(
-            class = "workflow-icon",
-            ph("upload", weight = "regular"),
-            id = "load_data_icon"
-          ),
-          span(
-            class = "workflow-icon",
-            ph("calculator", weight = "regular"),
-            id = "analyze_data_icon"
-          ),
-          span(
-            class = "workflow-icon",
-            ph("blueprint", weight = "regular"),
-            id = "visualize_data_icon"
-          ),
-          span(
-            class = "workflow-icon",
-            ph("newspaper-clipping", weight = "regular"),
-            id = "generate_report_icon"
-          )
-        )
-      )
-    ),
-    bslib::card(
-      bslib::card_header(
-        div(
-          class = "d-flex align-items-center justify-content-center gap-2",
-          ph("chart-line-up", weight = "bold"),
-          "Project Scores"
-        )
-      ),
-      card_body(
         fluidRow(
           style = "display: flex; align-items: center;",
           column(
             width = 2,
-            ph("flower-lotus", weight = "regular"),
-            style = "font-size: 1.5em; color: #D3D3D3;"
+            uiOutput("alignment_icon"),
+            style = "font-size: 1.5em;"
           ),
           column(
             width = 10,
             align = "right",
-            "-.--",
-            style = "font-family: Doto; font-size: 1.5 em; font-weight: 700; color: #D3D3D3;"
+            uiOutput("alignment_score_display"),
+            style = "font-size: 1.5em; font-weight: 700;"
           )
         ),
         fluidRow(
           style = "display: flex; align-items: center;",
           column(
             width = 2,
-            ph("flow-arrow", weight = "regular"),
-            style = "font-size: 1.5em; color: #D3D3D3;"
+            uiOutput("dynamics_icon"),
+            style = "font-size: 1.5em;"
           ),
           column(
             width = 10,
             align = "right",
-            "-.--",
-            style = "font-family: Doto; font-size: 1.5 em; font-weight: 700; color: #D3D3D3;"
+            uiOutput("dynamics_score_display"),
+            style = "font-size: 1.5em; font-weight: 700;"
           )
         ),
         fluidRow(
           style = "display: flex; align-items: center;",
           column(
             width = 2,
-            ph("cell-tower", weight = "regular"),
-            style = "font-size: 1.5em; color: #D3D3D3;"
+            uiOutput("cascade_icon"),
+            style = "font-size: 1.5em;"
           ),
           column(
             width = 10,
             align = "right",
-            "-.--",
-            style = "font-family: Doto; font-size: 1.5 em; font-weight: 700; color: #D3D3D3;"
+            uiOutput("cascade_score_display"),
+            style = "font-size: 1.5em; font-weight: 700;"
           )
+        )
+      )
+      ),
+      bslib::card_footer(
+        class = "d-flex align-items-center justify-content-between project-info-footer",
+        span(
+          class = "d-flex gap-1 align-items-center justify-content-between w-25",
+          uiOutput("report_output_icons")
+          ),
+        span(
+        class = "d-flex gap-1 align-items-center justify-content-end project-info-date w-75",
+        style = "font-family: 'Jersey 20'; margin: 0px; font-size: 1.25em;",
+        id = "pi_date",
+        ph("calendar-dots", weight = "bold"),
+        uiOutput(outputId = "project_info_date")
         )
       )
     ),
     bslib::card(
       bslib::card_header(
-        div(
-          class = "d-flex align-items-center justify-content-center gap-2",
-          ph("faders-horizontal", weight = "bold"),  # Better settings icon
-          "Settings"
-        )
+        class = "d-flex align-items-center justify-content-center gap-2",
+        ph("toolbox", weight = "bold"),
+        "Tools"
       ),
-      card_body(
+      bslib::card_body(
         fluidRow(
           column(
-            width = 12,
-            div(
-              class = "d-flex align-items-center justify-content-center gap-4",
-              ph("download-simple", weight = "regular"),
-              input_dark_mode(),
-              ph("lighthouse", weight = "regular"),
-              # span(
-              #   class = "monochrome-toggle",
-              #   shinyWidgets::prettyToggle(
-              #     inputId = "skip_overview",
-              #     label_on = NULL, 
-              #     label_off = NULL,
-              #     outline = TRUE,
-              #     plain = TRUE,
-              #     icon_on = ph("rocket-launch", weight = "bold"), 
-              #     icon_off = ph("compass", weight = "bold")
-              #   )
-              # ),
-              ph("upload-simple", weight = "regular"),
+            width = 2,
+            class = "d-flex align-items-center justify-content-center",
+            uiOutput("theme_indicator")
+          ),
+          column(
+            width = 10,
+            actionButton(
+              inputId = "toggle_theme",
+              class = "d-flex align-items-center justify-content-center gap-1",
+              label = "Set Dark Mode",
+              style = "width: 100%; font-size: 1em;"
+            )
+          )
+        ),
+        fluidRow(
+          column(
+            width = 2,
+            class = "d-flex align-items-center justify-content-center",
+            uiOutput("overview_indicator")
+          ),
+          column(
+            width = 10,
+            actionButton(
+              inputId = "overview_mode",
+              class = "d-flex align-items-center justify-content-center gap-1",
+              label = "Skip Overviews",
+              style = "width: 100%; font-size: 1em;"
+            )
+          )
+        )
+        ),
+        fluidRow(
+          column(
+            width = 2,
+            class = "d-flex align-items-center justify-content-center",
+            uiOutput("snapshot_indicator")
+          ),
+          column(
+            width = 10,
+            actionButton(
+              inputId = "save_snapshot",
+              class = "d-flex align-items-center justify-content-center gap-1",
+              label = "Save Snapshot",
+              style = "width: 100%; font-size: 1em;"
             )
           )
         )
       )
-    )
   ),
 
   # Navigation panels (comma-separated)
   bslib::nav_panel(
     title = "Home",
     icon = ph("lighthouse", weight = "bold"),
-    mod_home_ui("home_1")
+    mod_home_ui("home_1"),
   ),
   bslib::nav_panel(
     title = "Project Setup",

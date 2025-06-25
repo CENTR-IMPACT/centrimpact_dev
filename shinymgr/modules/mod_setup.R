@@ -409,11 +409,11 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
       req(input$report_formats)
       # Map each format to a Font Awesome icon (or generic if not available)
       icons_map <- list(
-        "html" = icon("globe"),
-        "pdf" = icon("file-pdf"),
-        "docx" = icon("file-word"),
-        "latex" = icon("file-code"),
-        "typst" = icon("file-invoice")
+        "html" = ph("file-html"),
+        "pdf" = ph("file-pdf"),
+        "docx" = ph("file-doc"),
+        "latex" = ph("file-txt"),
+        "typst" = ph("file-ts")
       )
 
       selected <- input$report_formats

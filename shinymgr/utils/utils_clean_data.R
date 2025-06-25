@@ -173,6 +173,7 @@ process_dynamics <- function(clean_data, dynamics_map) {
     logger::log_info("Structure after join: {paste(names(dynamics_data), collapse = ', ')}")
     
     dynamics_data <- dynamics_data |>
+      stats::na.omit() |>
       dplyr::mutate(
         weight = dplyr::case_when(
           rank == 1 ~ 1,

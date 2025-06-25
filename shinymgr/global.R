@@ -3,8 +3,12 @@
 if (!requireNamespace("logger", quietly = TRUE)) {
   install.packages("logger")
 }
+if (!requireNamespace("DT", quietly = TRUE)) {
+  install.packages("DT")
+}
 library(logger)
 library(phosphoricons)
+library(DT)
 
 # Set up logger to write to console with timestamps and log level
 log_threshold(INFO)

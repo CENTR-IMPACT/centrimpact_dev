@@ -114,33 +114,47 @@ clean_alignment_data <- function(dirty_data) {
       logger::log_trace("Cleaned data dimensions - Rows: {nrow(clean_data)}, Columns: {ncol(clean_data)}")
       logger::log_trace("Cleaned data columns: {paste(names(clean_data), collapse = ', ')}")
 
-      # Pivot the data to long format
-      logger::log_trace("Preparing to pivot data to long format")
+      # Process data based on its current format
       if (!is.null(clean_data) && nrow(clean_data) > 0) {
-        cols_to_pivot <- setdiff(names(clean_data), "role")
-        logger::log_trace("Columns to pivot: {paste(cols_to_pivot, collapse = ', ')}")
-
-        if (length(cols_to_pivot) > 0) {
-          logger::log_trace("Pivoting {length(cols_to_pivot)} columns to long format")
+        # If data is in wide format (has role + multiple alignment columns)
+        if ("role" %in% names(clean_data) && !all(c("alignment", "rating") %in% names(clean_data))) {
+          logger::log_info("Data is in wide format. Converting to long format for analysis.")
+          
+          # Get alignment columns (all columns except 'role')
+          alignment_cols <- setdiff(names(clean_data), "role")
+          
+          # Convert to long format
           clean_data <- clean_data |>
             tidyr::pivot_longer(
-              cols = dplyr::all_of(cols_to_pivot),
+              cols = dplyr::all_of(alignment_cols),
               names_to = "alignment",
               values_to = "rating"
             )
-
-          logger::log_info("Successfully pivoted alignment data. Found {nrow(clean_data)} rows.")
-          logger::log_trace("Pivoted data structure: {utils::str(clean_data, max.level = 1)}")
-          logger::log_debug("Alignment values: {paste(unique(clean_data$alignment), collapse = ', ')}")
-          logger::log_debug("Rating range: {paste(range(clean_data$rating, na.rm = TRUE), collapse = ' to ')}")
+          
+          logger::log_info("Converted data to long format with {nrow(clean_data)} rows")
+          
+        } else if (all(c("role", "alignment", "rating") %in% names(clean_data))) {
+          # Data is already in long format
+          logger::log_info("Data is already in long format. No transformation needed.")
         } else {
-          logger::log_warn("No columns to pivot in alignment data after initial cleaning")
-          logger::log_debug("Available columns: {if (is.null(clean_data)) 'NULL' else paste(names(clean_data), collapse = ', ')}")
+          stop("Data must be in either wide format (role + alignment columns) or long format (role, alignment, rating)")
         }
+        
+        # Ensure role has valid values
+        clean_data$role <- tolower(trimws(clean_data$role))
+        valid_roles <- c("researcher", "partner")
+        invalid_roles <- setdiff(unique(clean_data$role), valid_roles)
+        
+        if (length(invalid_roles) > 0) {
+          stop("Invalid role values found: ", paste(invalid_roles, collapse = ", "), 
+               ". Role must be one of: ", paste(valid_roles, collapse = ", "))
+        }
+        
+        # Ensure rating is numeric
+        clean_data$rating <- as.numeric(clean_data$rating)
       } else {
-        logger::log_warn("No data to process (empty or NULL) after initial cleaning in clean_alignment_data. Returning empty data frame.")
-        logger::log_trace("clean_data is NULL or has zero rows")
-        return(data.frame(role = character(), alignment = character(), rating = numeric())) # Return empty data frame with expected structure
+        logger::log_warn("No data to process (empty or NULL) after initial cleaning in clean_alignment_data.")
+        return(data.frame(role = character()))
       }
 
       logger::log_info("Alignment data cleaning completed successfully")

@@ -34,8 +34,8 @@ mod_generate_ui <- function(id) {
           column(
             width = 4,
             img(
-              src = "analyze.png",
-              alt = "Analyze Data Image",
+              src = "report.png",
+              alt = "Generate Data Image",
               style = "max-width: 100%; height: auto; margin-top: 20px; padding-left: 10%; padding-right: 10%;"
             )
           ),
