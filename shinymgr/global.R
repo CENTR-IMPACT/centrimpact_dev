@@ -1,4 +1,3 @@
-
 # Configure logger
 if (!requireNamespace("logger", quietly = TRUE)) {
   install.packages("logger")
@@ -6,9 +5,14 @@ if (!requireNamespace("logger", quietly = TRUE)) {
 if (!requireNamespace("DT", quietly = TRUE)) {
   install.packages("DT")
 }
+if (!requireNamespace("shinyvalidate", quietly = TRUE)) {
+  install.packages("shinyvalidate")
+}
 library(logger)
 library(phosphoricons)
 library(DT)
+library(htmltools)
+library(shinyvalidate)
 
 # Set up logger to write to console with timestamps and log level
 log_threshold(INFO)
@@ -20,13 +24,13 @@ library(shinymgr)
 
 # load required module packages (parse headers)
 app_mods <- list.files(
-  path = paste0(shinyMgrPath,"/modules"), 
+  path = paste0(shinyMgrPath, "/modules"),
   full.names = TRUE
 )
 
 # source in all manager (framework) modules
 mgr_mods <- list.files(
-  path = paste0(shinyMgrPath,"/modules_mgr"), 
+  path = paste0(shinyMgrPath, "/modules_mgr"),
   full.names = TRUE
 )
 
@@ -45,7 +49,7 @@ app_mods <- list.files(
 sapply(app_mods, FUN = source)
 
 # source in all utils
-#source("utils/utils_workflow.R")
+# source("utils/utils_workflow.R")
 utils_mods <- list.files(
   path = paste0(shinyMgrPath, "/utils"),
   full.names = TRUE

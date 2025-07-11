@@ -45,6 +45,28 @@ mod_generate_ui <- function(id) {
         "Generate Report",
         icon = icon("file-alt"),
         fluidRow(
+          style = "background-color: #4B7F52;",
+          phosphoricons::ph(
+            name = "check-circle"),
+          span("OK")
+          ),
+        fluidRow(
+          style = "background-color: #BC7A5A;",
+          phosphoricons::ph(
+            name = "info"),
+          span("Missing But Not Necessary")
+        ),
+        fluidRow(
+          style = "background-color: #D17C45;",
+          phosphoricons::ph(
+            name = "warning-circle"),
+          span("Missing and Necessary")
+        ),
+        fluidRow(
+          style = "background-color: #990000;",
+          phosphoricons::ph(
+            name = "x-circle"),
+          span("Error")
         )
       )
     )

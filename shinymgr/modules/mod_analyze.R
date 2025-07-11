@@ -8,35 +8,44 @@ message("Analyze module is being loaded")
 # !! ModNotes = This module provides analysis functionality for the application.
 # !! ModActive = 1
 # !! FunctionArg = alignment_data !! Reactive containing the alignment data to analyze !! reactive
-# !! FunctionReturn = returnName1 !! returnDescription !! returnClass
-# !! FunctionReturn = returnName2 !! returnDescription !! returnClass
+# !! FunctionReturn = analysis_results !! Analysis output containing statistical summaries !! reactive
+# !! FunctionReturn = plot_data !! Data prepared for visualization !! reactive
 
-# Import logger functions
-#' @importFrom logger log_info log_error log_warn log_debug log_trace
-#' @importFrom shinyjs useShinyjs show
-#' @importFrom glue glue
-#' @importFrom shiny showNotification
+# Load required libraries
+#' @importFrom phosphoricons ph
+#' @importFrom shiny NS tagList observe observeEvent reactive reactiveVal reactiveValues req debounce updateTextInput updateDateInput updateTextAreaInput renderUI
+#' @importFrom shinyAce updateAceEditor
+#' @importFrom logger log_info log_warn log_error log_trace
+#' @importFrom bslib navset_card_tab nav_panel
+#' @importFrom utils create_status_card create_actions_card create_info_card
 
 # Enable glue syntax for logger
 .onLoad <- function(libname, pkgname) {
   logger::log_formatter(logger::formatter_glue)
 }
 
-
 # the ui function
 mod_analyze_ui <- function(id) {
   ns <- NS(id)
 
-  shinyjs::useShinyjs()
-
   tagList(
-
-    # Main content
-    bslib::navset_card_tab(
-      id = ns("analyze_tabs"),
+    tags$head(
+      tags$style(HTML(paste0(
+        "#", ns("analyze_status_message"), " {
+          display: block;
+          padding-left: 0.5em;
+          z-index: 10;
+          width: 100%;
+          font-family: 'Share Tech Mono' !important;
+        }"
+      )))
+    ),
+    bslib::navset_card_pill(
+      id = "analyze_nav",
       bslib::nav_panel(
         "Overview",
         icon = phosphoricons::ph("lighthouse"),
+        class = "main_content",
         fluidRow(
           style = "padding: 1em;",
           column(
@@ -64,183 +73,94 @@ mod_analyze_ui <- function(id) {
       bslib::nav_panel(
         "Analyze Data",
         icon = phosphoricons::ph("calculator"),
-        class = "rounded shadow",
-        style = "padding: 1em !important;",
-        fluidRow(
-          column(
-            width = 12,
-            h1(
-              "Run Analysis "
-            ),
-            class = "analyze",
-            style = "border-bottom: solid 1px #4A4A4A;"
-          ),
-        ),
+        class = "main_content",
         fluidRow(
           column(
             width = 7,
-            style = "margin-bottom: 3em;",
-            div(
-              # style = "gap: 10px;",
-              p("Load the main project data set containing all research team generated data, including:"),
-              tags$ul(
-                tags$li("Project indicators and metrics"),
-                tags$li("Cascade effects analysis")
-              ),
+            create_info_card(
+              ns,
+              title = "Analyze Data", icon = "calculator",
+              status = "analyze",
+              content = tagList(
+                p(
+                  "This module allows you to analyze your project data. Select the type of analysis you want to perform and run the analysis. Use the buttons below to run each analysis."
+                )
+              )
             )
           ),
           column(
             width = 5,
-            fluidRow(
-              style = "margin-right: 1em;",
-              column(
-                width = 12,
-                #style = "margin-bottom: 1em;",
-                bslib::card(
-                  bslib::card_header(
-                    style = "background-color: #d2bfa3;",
-                    actionButton(ns("analyze_full"),
-                      label = tagList(
-                        phosphoricons::ph("calculator"),
-                        "Run Full Analysis"
-                      ),
-                      class = "btn-primary btn-lg ",
-                      style = "width: 100%;"
-                    )
+            create_actions_card(
+              ns,
+              action_buttons = list(
+                actionButton(
+                  ns("analyze_alignment"),
+                  label = tagList(
+                    phosphoricons::ph("flower-lotus"),
+                    "Analyze Alignment Data"
+                  ),
+                  class = "action-button action-alignment",
+                  style = "width: 80%;"
+                ),
+                actionButton(ns("analyze_dynamics"),
+                  label = tagList(
+                    phosphoricons::ph("pulse"),
+                    "Analyze Dynamics Data"
+                  ),
+                  class = "action-button action-dynamics",
+                  style = "width: 80%;"
+                ),
+                actionButton(ns("analyze_cascade"),
+                  label = tagList(
+                    phosphoricons::ph("waveform"),
+                    "Analyze Cascade Data"
+                  ),
+                  class = "action-button action-cascade",
+                  style = "width: 80%;"
+                ),
+                actionButton(
+                  ns("analyze_full"),
+                  label = tagList(
+                    phosphoricons::ph("calculator"),
+                    "Run Full Analysis"
+                  ),
+                  class = "action-button action-full btn-lrg w-90",
+                  style = "width: 80%;"
+                ) |>
+                  tooltip(
+                    "Run all analyses in sequence"
                   )
-                )
               ),
-              style = "background-color: #f0e5d7; padding-top: 10px; border: solid #d2bfa3 1px;",
-              class = "shadow rounded",
-              bslib::card_body(
-                fluidRow(
-                  class = "align-items-center",
-                  column(width = 1),
-                  column(
-                    width = 1,
-                    uiOutput(ns("alignment_icon"))
-                  ),
-                  column(
-                    width = 1,
-                    span(
-                      ph("flower-lotus", weight = "bold")
-                    )
-                  ),
-                  column(
-                    width = 5,
-                    style = "font-weight: bold; font-size: 1.2em;",
-                    span("Alignment")
-                  ),
-                  column(
-                    width = 4,
-                    div(
-                      class = "d-flex justify-content-end",
-                      style = "width: 100%;",
-                      actionButton(ns("analyze_alignment"),
-                        label = tagList(
-                          phosphoricons::ph("flower-lotus"),
-                          "Analyze"
-                        ),
-                        class = "btn-analyze"
-                      )
-                    )
-                  )
+              progress_bars = list(
+                shinyWidgets::progressBar(
+                  id = ns("progress_clean_data"),
+                  title = tags$span("Clean Data Progress", class = "pb-title", style = "text-align: left !important;"),
+                  value = 0,
+                  display_pct = FALSE,
+                  status = "success"
                 ),
-                fluidRow(
-                  class = "align-items-center",
-                  column(width = 1),
-                  column(
-                    width = 1,
-                    uiOutput(ns("dynamics_icon"))
-                  ),
-                  column(
-                    width = 1,
-                    span(
-                      ph("pulse", weight = "bold")
-                    )
-                  ),
-                  column(
-                    width = 5,
-                    style = "font-weight: bold; font-size: 1.2em;",
-                    span("Project Dynamics")
-                  ),
-                  column(
-                    width = 4,
-                    div(
-                      class = "d-flex justify-content-end",
-                      style = "width: 100%;",
-                      actionButton(ns("analyze_dynamics"),
-                        label = tagList(
-                          phosphoricons::ph("pulse"),
-                          "Analyze"
-                        ),
-                        class = "btn-analyze"
-                      )
-                    )
-                  )
-                ),
-                fluidRow(
-                  class = "align-items-center",
-                  column(width = 1),
-                  column(
-                    width = 1,
-                    uiOutput(ns("cascade_icon"))
-                  ),
-                  column(
-                    width = 1,
-                    span(
-                      ph("waveform", weight = "bold")
-                    )
-                  ),
-                  column(
-                    width = 5,
-                    style = "font-weight: bold; font-size: 1.2em;",
-                    span("Cascade Effects")
-                  ),
-                  column(
-                    width = 4,
-                    div(
-                      class = "d-flex justify-content-end",
-                      style = "width: 100%;",
-                      actionButton(ns("analyze_cascade"),
-                        label = tagList(
-                          phosphoricons::ph("waveform"),
-                          "Analyze"
-                        ),
-                        class = "btn-analyze"
-                      )
-                    )
-                  )
-                )
-              )
+                NULL,
+                NULL,
+                NULL
+              ),
+              title = "Actions",
+              icon = "person-simple-tai-chi"
             )
           )
         )
-        # fluidRow(
-        #   column(width = 7),
-        #   column(
-        #     width = 5,
-        #     img(
-        #       src = "analyze-painting.jpg",
-        #       class = "header-logo",
-        #       style = "max-width: 100%; height: auto; margin: 0 auto 20px; display: block; border-radius: 10px; shadow: 0 4px 8px rgba(0, 0, 0, 0.2);"
-        #     )
-        #   )
-        # )
       ),
       # Data View Tabs
       bslib::nav_panel("Alignment",
         value = "alignment_panel", icon = phosphoricons::ph("flower-lotus"),
-        div(
-          style = "margin: 15px;",
-          h1("Alignment Analysis Results"),
+        class = "main_content",
           shiny::conditionalPanel(
             condition = "output.alignment_analyzed == false",
             ns = ns,
-            div(
-              class = "alert alert-info",
-              icon = phosphoricons::ph("flower-lotus"),
-              "Please run the alignment analysis first by clicking the 'Analyze Alignment' button."
+            create_flat_info_card(
+              ns,
+              title = "Alignment Analysis Results",
+              icon = "flower-lotus",
+              content = p("Please run the alignment analysis first by clicking the 'Analyze Alignment' button.")
             )
           ),
           shiny::conditionalPanel(
@@ -270,7 +190,6 @@ mod_analyze_ui <- function(id) {
                         class = "btn-primary"
                       )
                     )
-                  )
                 )
               ),
               column(
@@ -293,6 +212,7 @@ mod_analyze_ui <- function(id) {
       bslib::nav_panel("Dynamics",
         value = "dynamics_panel",
         icon = phosphoricons::ph("pulse"),
+        class = "main_content",
         fluidPage(
           fluidRow(
             column(
@@ -305,16 +225,15 @@ mod_analyze_ui <- function(id) {
       ),
       bslib::nav_panel("Cascade Effects",
         value = "cascade_panel", icon = phosphoricons::ph("waveform"),
-        div(
-          style = "margin: 15px;",
-          h1("Cascade Effects Analysis"),
+        class = "main_content",
           shiny::conditionalPanel(
             condition = "!output.cascade_analyzed",
             ns = ns,
-            div(
-              class = "alert alert-info",
-              phosphoricons::ph("waveform"),
-              "Please run the cascade effects analysis first by clicking the 'Analyze Cascade Effects' button."
+            create_flat_info_card(
+              ns,
+              title = "Cascade Analysis Results",
+              icon = "waveform",
+              content = p("Please run the cascade analysis first by clicking the 'Analyze Cascade' button.")
             )
           ),
           shiny::conditionalPanel(
@@ -359,7 +278,6 @@ mod_analyze_ui <- function(id) {
               )
             )
           )
-        )
       )
     )
   )
@@ -371,6 +289,14 @@ mod_analyze_ui <- function(id) {
 # the server function with enhanced debugging
 mod_analyze_server <- function(id, ns_workflow) {
   message("=== mod_analyze_server CALLED with id: ", id, " ===")
+
+  # Progress bar titles for updateProgressBar
+  progress_titles <- list(
+    alignment = tags$span("Alignment Analysis Progress", class = "pb-title", style = "text-align: left !important;"),
+    dynamics = tags$span("Dynamics Analysis Progress", class = "pb-title", style = "text-align: left !important;"),
+    cascade = tags$span("Cascade Analysis Progress", class = "pb-title", style = "text-align: left !important;"),
+    full = tags$span("Full Analysis Progress", class = "pb-title", style = "text-align: left !important;")
+  )
 
   # Debug the alignment_data parameter
   cat("\n=== MODULE INITIALIZATION ===\n")
@@ -497,6 +423,29 @@ mod_analyze_server <- function(id, ns_workflow) {
       observe({
         status <- data_status()
         message("Data status: ", status)
+      })
+
+      # --- Observe per-metric workflow state for Alignment Clean Data completion and update status/icon ---
+      observe({
+        wf <- ns_workflow$workflow$alignment
+        if (!is.null(wf) && wf$stage == "Clean Data" && wf$status == "complete") {
+          update_alignment_status_display("cleaned", session, ns, ns_workflow)
+          update_alignment_workflow_icons(ns_workflow, session)
+        }
+      })
+
+      # --- NEW: Observe workflow state for Alignment Clean Data completion and update status/icon ---
+      observe({
+        if (!is.null(ns_workflow$stage) && !is.null(ns_workflow$status) && !is.null(ns_workflow$metric)) {
+          if (
+            ns_workflow$stage == "Clean Data" &&
+              ns_workflow$status == "complete" &&
+              tolower(ns_workflow$metric) == "alignment"
+          ) {
+            update_alignment_status_display("cleaned", session, ns, ns_workflow)
+            update_alignment_workflow_icons(ns_workflow, session)
+          }
+        }
       })
 
       # Debug button to check data on demand
@@ -751,6 +700,7 @@ mod_analyze_server <- function(id, ns_workflow) {
 
       # Analyze dynamics button
       observeEvent(input$analyze_dynamics, {
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_dynamics"), value = 0, title = progress_titles$dynamics)
         log_info("=== ANALYZE DYNAMICS BUTTON CLICKED ===")
 
         # Get the data reactively
@@ -818,10 +768,12 @@ mod_analyze_server <- function(id, ns_workflow) {
             }
           )
         })
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_dynamics"), value = 100, title = progress_titles$dynamics)
       })
 
       # Analyze alignment button
       observeEvent(input$analyze_alignment, {
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_alignment"), value = 0, title = progress_titles$alignment)
         log_info("=== ANALYZE ALIGNMENT BUTTON CLICKED ===")
 
         # Get the data reactively
@@ -941,6 +893,17 @@ mod_analyze_server <- function(id, ns_workflow) {
               }
               rv_analysis$alignment_analyzed <- TRUE
 
+              # Update workflow step for alignment analysis completion
+              update_workflow_step(
+                ns_workflow,
+                stage = "Calculate Scores",
+                status = "complete",
+                session = session
+              )
+
+              # Update alignment workflow icons
+              update_alignment_workflow_icons(ns_workflow, session, ns)
+
               # Show success message
               msg <- glue::glue("Analysis complete. Alignment score: {round(as.numeric(result$alignment_score), 3)}")
               log_info(msg)
@@ -958,156 +921,23 @@ mod_analyze_server <- function(id, ns_workflow) {
             }
           )
         })
-
-        # Switch to the Alignment tab to show results
-        # updateTabsetPanel(session, "analyze_tabs", selected = "alignment_panel")
-      })
-
-      # Analyze dynamics button
-      observeEvent(input$analyze_dynamics, {
-        log_info("=== ANALYZE DYNAMICS BUTTON CLICKED ===")
-
-        # Get the data reactively
-        data <- dynamics_data()
-
-        # Check if data is available
-        if (is.null(data)) {
-          log_error("No dynamics data available for analysis")
-          showNotification(
-            "ERROR: Please load dynamics data in the 'Upload Data' tab first",
-            type = "error",
-            duration = 10
-          )
-          return()
-        }
-
-        # Step 4: Validate the data
-        if (is.null(data)) {
-          log_warn("dynamics_data() returned NULL")
-          showNotification("WARNING: No data available for analysis",
-            type = "warning",
-            duration = 10
-          )
-          return()
-        }
-
-        if (!is.data.frame(data)) {
-          msg <- glue::glue("dynamics_data() returned non-data.frame: {class(data)}")
-          log_error(msg)
-          showNotification(paste("ERROR:", msg),
-            type = "error",
-            duration = 10
-          )
-          return()
-        }
-
-        if (nrow(data) == 0) {
-          log_warn("dynamics_data() returned empty data.frame")
-          showNotification("WARNING: No data rows available for analysis",
-            type = "warning",
-            duration = 10
-          )
-          return()
-        }
-
-        # Step 5: Success - show data info
-        msg <- glue::glue("SUCCESS: Data has {nrow(data)} rows and {ncol(data)} columns")
-        log_info(msg)
-        log_info("Column names: {paste(names(data), collapse = ', ')}")
-        showNotification(msg,
-          type = "message",
-          duration = 10
-        )
-
-        # Run the analysis using centrimpact::analyze_dynamics
-        log_info("Running centrimpact::analyze_dynamics...")
-        withProgress(message = "Analyzing dynamics...", value = 0.5, {
-          tryCatch(
-            {
-              # Verify data is in the correct format for dynamics analysis
-              log_info("Verifying dynamics data format...")
-              required_cols <- c("domain", "weight", "salience")
-
-              # Check for required columns
-              missing_cols <- setdiff(required_cols, names(data))
-              if (length(missing_cols) > 0) {
-                stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
-              }
-
-              # Log the structure of the data
-              log_info(glue::glue(
-                "Data structure: {nrow(data)} rows, {ncol(data)} columns. "
-              ))
-              log_info(glue::glue(
-                "Domains: {paste(unique(data$domain), collapse = ', ')}. "
-              ))
-
-
-
-              # Run the analysis
-              log_info("Calling centrimpact::analyze_dynamics...")
-              result <- centrimpact::analyze_dynamics(data)
-
-              # Debug: Log basic information about the result
-              log_info("Analysis result class(es): ", paste(class(result), collapse = ", "))
-              log_info("Result names: ", paste(names(result), collapse = ", "))
-
-              # Log more detailed structure to console for debugging
-              message("\n=== DEBUG: Analysis result structure ===")
-              str(result)
-              message("=== END DEBUG ===\n")
-
-              # Validate the result structure
-              # Verify the structure of the result
-              if (!all(c("domain_df", "dynamics_score") %in% names(result))) {
-                stop("Unexpected result structure from analyze_dynamics. Expected 'domain_df' and 'dynamics_score'.")
-              }
-
-              # Store results and update UI
-              rv_analysis$dynamics_results <- result$domain_df
-              rv_analysis$dynamics_score <- result$dynamics_score
-              rv_analysis$full_results <- result$dynamics_df
-              rv_analysis$dynamics_analyzed <- TRUE
-
-              # Show success message
-              msg <- glue::glue("Analysis complete. Dynamics score: {round(as.numeric(result$dynamics_score), 2)}")
-              log_info(msg)
-              showNotification(msg, type = "message", duration = 5)
-
-              # Log some debug info
-              log_info(glue::glue("Domain scores dimensions: {nrow(result$domain_df)}x{ncol(result$domain_df)}"))
-              log_info(glue::glue("Dynamics score: {result$dynamics_score}"))
-            },
-            error = function(e) {
-              error_msg <- glue::glue("Error in analyze_dynamics: {conditionMessage(e)}")
-              log_error(error_msg)
-              showNotification(error_msg, type = "error", duration = 10)
-              return()
-            }
-          )
-        })
-
-        # Switch to the Dynamics tab to show results
-        # updateTabsetPanel(session, "analyze_tabs", selected = "dynamics_panel")
-      })
-
-      # After analysis, switch to the dynamics panel
-      observeEvent(input$analyze_dynamics, {
-        # updateTabsetPanel(session, "analyze_tabs", selected = "dynamics_panel")
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_alignment"), value = 100, title = progress_titles$alignment)
       })
 
       # Full analysis observer - runs all analyses in sequence
       observeEvent(input$analyze_full, {
-        log_info("=== FULL ANALYSIS STARTED ===")
+        # Reset all progress bars
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_full"), value = 0, title = progress_titles$full)
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_alignment"), value = 0, title = progress_titles$alignment)
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_dynamics"), value = 0, title = progress_titles$dynamics)
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_cascade"), value = 0, title = progress_titles$cascade)
 
-        # Clear previous console output
-        console_messages(character(0))
-
-        # Create a progress object for the full analysis
         withProgress(message = "Running Full Analysis...", value = 0, {
           # 1. Run alignment analysis
           update_console(session, "Starting alignment analysis...", "info")
           incProgress(0.1, detail = "Running alignment analysis")
+          shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_full"), value = 10, title = progress_titles$full)
+          shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_alignment"), value = 25, title = progress_titles$alignment)
 
           tryCatch(
             {
@@ -1116,6 +946,7 @@ mod_analyze_server <- function(id, ns_workflow) {
                 stop("No alignment data available")
               }
 
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_alignment"), value = 50, title = progress_titles$alignment)
               result <- centrimpact::analyze_alignment(data)
 
               message("\n=== SETTING ALIGNMENT SCORE (FULL ANALYSIS) ===")
@@ -1128,16 +959,31 @@ mod_analyze_server <- function(id, ns_workflow) {
               rv_analysis$icc_scores <- result$icc_score
               rv_analysis$alignment_analyzed <- TRUE
 
+              # Update workflow step for alignment analysis completion
+              update_workflow_step(
+                ns_workflow,
+                stage = "Calculate Scores",
+                status = "complete",
+                session = session
+              )
+
+              # Update alignment workflow icons
+              update_alignment_workflow_icons(ns_workflow, session, ns)
+
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_alignment"), value = 100, title = progress_titles$alignment)
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_full"), value = 33, title = progress_titles$full)
+
               update_console(
                 session,
-                sprintf("✓ Alignment analysis complete (Score: %.2f)", result$alignment_score),
+                sprintf("<U+2713> Alignment analysis complete (Score: %.2f)", result$alignment_score),
                 "success"
               )
             },
             error = function(e) {
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_alignment"), value = 100, title = progress_titles$alignment)
               update_console(
                 session,
-                paste("✗ Alignment analysis failed:", e$message),
+                paste("<U+2717> Alignment analysis failed:", e$message),
                 "error"
               )
               return()
@@ -1147,6 +993,7 @@ mod_analyze_server <- function(id, ns_workflow) {
           # 2. Run dynamics analysis
           update_console(session, "Starting dynamics analysis...", "info")
           incProgress(0.4, detail = "Running dynamics analysis")
+          shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_dynamics"), value = 25, title = progress_titles$dynamics)
 
           tryCatch(
             {
@@ -1155,22 +1002,38 @@ mod_analyze_server <- function(id, ns_workflow) {
                 stop("No dynamics data available")
               }
 
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_dynamics"), value = 50, title = progress_titles$dynamics)
               result <- centrimpact::analyze_dynamics(data)
               rv_analysis$dynamics_results <- result$domain_df
               rv_analysis$dynamics_score <- result$dynamics_score
               rv_analysis$full_results <- result$dynamics_df
               rv_analysis$dynamics_analyzed <- TRUE
 
+              # Update workflow step for dynamics analysis completion
+              update_workflow_step(
+                ns_workflow,
+                stage = "Calculate Scores",
+                status = "complete",
+                session = session
+              )
+
+              # Update main data workflow icons for dynamics analysis completion
+              update_main_data_workflow_icons("Calculate Scores", "complete", session, ns, ns_workflow)
+
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_dynamics"), value = 100, title = progress_titles$dynamics)
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_full"), value = 66, title = progress_titles$full)
+
               update_console(
                 session,
-                sprintf("✓ Dynamics analysis complete (Score: %.2f)", result$dynamics_score),
+                sprintf("<U+2713> Dynamics analysis complete (Score: %.2f)", result$dynamics_score),
                 "success"
               )
             },
             error = function(e) {
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_dynamics"), value = 100, title = progress_titles$dynamics)
               update_console(
                 session,
-                paste("✗ Dynamics analysis failed:", e$message),
+                paste("<U+2717> Dynamics analysis failed:", e$message),
                 "error"
               )
               return()
@@ -1180,6 +1043,7 @@ mod_analyze_server <- function(id, ns_workflow) {
           # 3. Run cascade analysis
           update_console(session, "Starting cascade analysis...", "info")
           incProgress(0.8, detail = "Running cascade analysis")
+          shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_cascade"), value = 25, title = progress_titles$cascade)
 
           tryCatch(
             {
@@ -1188,21 +1052,37 @@ mod_analyze_server <- function(id, ns_workflow) {
                 stop("No cascade data available")
               }
 
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_cascade"), value = 50, title = progress_titles$cascade)
               result <- centrimpact::analyze_cascade(data)
               rv_analysis$cascade_results <- result$cascade_df
               rv_analysis$cascade_score <- result$cascade_score
               rv_analysis$cascade_analyzed <- TRUE
 
+              # Update workflow step for cascade analysis completion
+              update_workflow_step(
+                ns_workflow,
+                stage = "Calculate Scores",
+                status = "complete",
+                session = session
+              )
+
+              # Update main data workflow icons for cascade analysis completion
+              update_main_data_workflow_icons("Calculate Scores", "complete", session, ns, ns_workflow)
+
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_cascade"), value = 100, title = progress_titles$cascade)
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_full"), value = 100, title = progress_titles$full)
+
               update_console(
                 session,
-                sprintf("✓ Cascade analysis complete (Score: %.2f)", result$cascade_score),
+                sprintf("<U+2713> Cascade analysis complete (Score: %.2f)", result$cascade_score),
                 "success"
               )
             },
             error = function(e) {
+              shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_cascade"), value = 100, title = progress_titles$cascade)
               update_console(
                 session,
-                paste("✗ Cascade analysis failed:", e$message),
+                paste("<U+2717> Cascade analysis failed:", e$message),
                 "error"
               )
               return()
@@ -1213,10 +1093,13 @@ mod_analyze_server <- function(id, ns_workflow) {
           incProgress(1, detail = "Analysis complete!")
           update_console(session, "All analyses completed successfully!", "success")
         })
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_full"), value = 100, title = progress_titles$full)
       })
 
       # Cascade analysis observer
       observeEvent(input$analyze_cascade, {
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_cascade"), value = 0, title = progress_titles$cascade)
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_cascade"), value = 10, title = progress_titles$cascade)
         log_info("=== ANALYZE CASCADE BUTTON CLICKED ===")
 
         # Get the data reactively
@@ -1278,6 +1161,17 @@ mod_analyze_server <- function(id, ns_workflow) {
               rv_analysis$cascade_score <- result$cascade_score
               rv_analysis$cascade_analyzed <- TRUE
 
+              # Update workflow step for cascade analysis completion
+              update_workflow_step(
+                ns_workflow,
+                stage = "Calculate Scores",
+                status = "complete",
+                session = session
+              )
+
+              # Update main data workflow icons for cascade analysis completion
+              update_main_data_workflow_icons("Calculate Scores", "complete", session, ns, ns_workflow)
+
               # Show success message
               msg <- glue::glue("Cascade analysis complete. Score: {round(as.numeric(result$cascade_score), 2)}")
               log_info(msg)
@@ -1290,6 +1184,7 @@ mod_analyze_server <- function(id, ns_workflow) {
             }
           )
         })
+        shinyWidgets::updateProgressBar(session = session, id = session$ns("progress_analysis_cascade"), value = 100, title = progress_titles$cascade)
       })
 
       # Render dynamics analysis UI
@@ -1304,7 +1199,7 @@ mod_analyze_server <- function(id, ns_workflow) {
           fluidRow(
             column(
               width = 12,
-              style = "margin-top: 20px;",
+              style = "margin-top: 20px;background-color: #f0e5d7; border-radius: 12px; box-shadow:  8px 8px 15px #d1c8b5; padding: 1rem;",
               uiOutput(ns("dynamics_score_box"))
             )
           ),
@@ -1317,7 +1212,7 @@ mod_analyze_server <- function(id, ns_workflow) {
               bslib::card(
                 bslib::card_header("Domain Scores"),
                 bslib::card_body(
-                  style = "font-family: var(--font-mono) !important;",
+                  style = "margin-top: 20px; background-color: #f0e5d7; border-radius: 12px; box-shadow:  8px 8px 15px #d1c8b5; padding: 1rem; font-family: var(--font-mono) !important;",
                   tableOutput(ns("domain_scores_table")),
                   div(
                     style = "margin-top: 20px;",
@@ -1330,7 +1225,7 @@ mod_analyze_server <- function(id, ns_workflow) {
             ),
             column(
               width = 6,
-              style = "margin-top: 20px; font-family: var(--font-mono) !important;",
+              style = "margin-top: 20px; background-color: #f0e5d7; border-radius: 12px; box-shadow:  8px 8px 15px #d1c8b5; padding: 1rem; font-family: var(--font-mono) !important;",
               bslib::card(
                 bslib::card_header("Dynamics Summary"),
                 bslib::card_body(
@@ -1345,10 +1240,25 @@ mod_analyze_server <- function(id, ns_workflow) {
             column(
               width = 12,
               style = "margin-top: 30px;",
-              bslib::card(
-                bslib::card_header("Detailed Dynamics Results"),
-                bslib::card_body(
-                  DT::dataTableOutput(ns("full_dynamics_table"))
+              div(
+                bslib::card(
+                  style = "margin-top: 20px;background-color: #f0e5d7; border-radius: 12px; box-shadow:  8px 8px 15px #d1c8b5;",
+                  bslib::card_header("Detailed Dynamics Results"),
+                  bslib::card_body(
+                    style = "padding: 1rem;",
+                    div(
+                      style = "overflow-x: auto; width: 100%;",
+                      DT::dataTableOutput(ns("full_dynamics_table"))
+                    )
+                  )
+                ),
+                div(
+                  style = "margin-top: 15px; text-align: right;",
+                  downloadButton(ns("download_dynamics"),
+                    "Download Full Dynamics Data",
+                    class = "btn-primary",
+                    style = "background-color: #4a7c59; border-color: #3a6a4a;"
+                  )
                 )
               )
             )
@@ -1413,9 +1323,9 @@ mod_analyze_server <- function(id, ns_workflow) {
               div(
                 class = "d-flex align-items-center gap-3",
                 style = paste0(
-                  "font-family: 'Jersey 20'; 
-                font-size: 4rem; 
-                padding: 0.5rem 1rem; 
+                  "font-family: 'Jersey 20';
+                font-size: 4rem;
+                padding: 0.5rem 1rem;
                 border-radius: 0.5rem;
                 color: white;
                 background-color: ", score_color, ";"
@@ -1425,8 +1335,8 @@ mod_analyze_server <- function(id, ns_workflow) {
               ),
               span(
                 style = paste0(
-                  "font-size: 1.25rem; 
-                font-family: 'Jersey 20'; 
+                  "font-size: 1.25rem;
+                font-family: 'Jersey 20';
                 text-transform: uppercase;
                 color: ", score_color, ";"
                 ),
@@ -1515,72 +1425,6 @@ mod_analyze_server <- function(id, ns_workflow) {
       })
       outputOptions(output, "cascade_analyzed", suspendWhenHidden = FALSE)
 
-      # Render cascade results table
-      output$cascade_results_table <- renderTable(
-        {
-          req(rv_analysis$cascade_analyzed, rv_analysis$cascade_results)
-
-          if (is.data.frame(rv_analysis$cascade_results)) {
-            # Format the cascade results
-            cascade_results <- rv_analysis$cascade_results
-
-            # Round numeric columns to 2 decimal places
-            numeric_cols <- sapply(cascade_results, is.numeric)
-            if (any(numeric_cols)) {
-              cascade_results[numeric_cols] <- round(cascade_results[numeric_cols], 2)
-            }
-
-            cascade_results
-          } else {
-            data.frame(Message = "No cascade results available")
-          }
-        },
-        rownames = FALSE,
-        striped = TRUE,
-        hover = TRUE,
-        bordered = TRUE
-      )
-
-      # Render cascade summary output
-      output$cascade_summary_output <- renderPrint({
-        req(rv_analysis$cascade_analyzed, rv_analysis$cascade_results)
-
-        cat("Cascade Effects Analysis Summary\n")
-        cat("==============================\n\n")
-
-        if (is.data.frame(rv_analysis$cascade_results)) {
-          # Get summary of cascade results
-          cascade_results <- rv_analysis$cascade_results
-
-          # Calculate basic statistics for numeric columns
-          numeric_cols <- sapply(cascade_results, is.numeric)
-          if (any(numeric_cols)) {
-            cat("Numeric Columns Summary:\n")
-            print(summary(cascade_results[, numeric_cols, drop = FALSE]))
-          }
-
-          # Add overall score
-          if (!is.null(rv_analysis$cascade_score)) {
-            cat(
-              "\nOverall Cascade Score: ",
-              round(as.numeric(rv_analysis$cascade_score), 2), "\n"
-            )
-          }
-        } else {
-          cat("No cascade data available for summary")
-        }
-      })
-
-      # Download handler for cascade results
-      output$download_cascade_results <- downloadHandler(
-        filename = function() {
-          paste0("cascade_results_", format(Sys.Date(), "%Y%m%d"), ".csv")
-        },
-        content = function(file) {
-          write.csv(rv_analysis$cascade_results, file, row.names = FALSE)
-        }
-      )
-
       # Render dynamics score box
       output$dynamics_score_box <- renderUI({
         req(rv_analysis$dynamics_analyzed, rv_analysis$dynamics_score)
@@ -1652,9 +1496,9 @@ mod_analyze_server <- function(id, ns_workflow) {
               div(
                 class = "d-flex align-items-center gap-3",
                 style = paste0(
-                  "font-family: 'Jersey 20'; 
-                font-size: 4rem; 
-                padding: 0.5rem 1rem; 
+                  "font-family: 'Jersey 20';
+                font-size: 4rem;
+                padding: 0.5rem 1rem;
                 border-radius: 0.5rem;
                 color: white;
                 background-color: ", score_color, ";"
@@ -1664,8 +1508,8 @@ mod_analyze_server <- function(id, ns_workflow) {
               ),
               span(
                 style = paste0(
-                  "font-size: 1.25rem; 
-                font-family: 'Jersey 20'; 
+                  "font-size: 1.25rem;
+                font-family: 'Jersey 20';
                 text-transform: uppercase;
                 color: ", score_color, ";"
                 ),
@@ -1737,14 +1581,24 @@ mod_analyze_server <- function(id, ns_workflow) {
             options = list(
               pageLength = 10,
               scrollX = TRUE,
-              dom = "Bfrtip",
-              buttons = c("copy", "csv", "excel", "print")
+              dom = "frtip"
             ),
-            extensions = "Buttons",
             rownames = FALSE
           )
         }
       })
+
+      # Download handler for full dynamics data
+      output$download_dynamics <- downloadHandler(
+        filename = function() {
+          paste0("dynamics_data_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv")
+        },
+        content = function(file) {
+          req(rv_analysis$full_results)
+          write.csv(rv_analysis$full_results, file, row.names = FALSE)
+        },
+        contentType = "text/csv"
+      )
 
       # Download handler for domain scores
       output$download_domain_scores <- downloadHandler(
@@ -1872,9 +1726,9 @@ mod_analyze_server <- function(id, ns_workflow) {
               div(
                 class = "d-flex align-items-center gap-3",
                 style = paste0(
-                  "font-family: 'Jersey 20'; 
-                font-size: 4rem; 
-                padding: 0.5rem 1rem; 
+                  "font-family: 'Jersey 20';
+                font-size: 4rem;
+                padding: 0.5rem 1rem;
                 border-radius: 0.5rem;
                 color: white;
                 background-color: ", score_color, ";"
@@ -1884,8 +1738,8 @@ mod_analyze_server <- function(id, ns_workflow) {
               ),
               span(
                 style = paste0(
-                  "font-size: 1.25rem; 
-                font-family: 'Jersey 20'; 
+                  "font-size: 1.25rem;
+                font-family: 'Jersey 20';
                 text-transform: uppercase;
                 color: ", score_color, ";"
                 ),
@@ -1986,6 +1840,15 @@ mod_analyze_server <- function(id, ns_workflow) {
         # If we get here, show the raw structure
         cat("ICC Scores (raw structure):\n")
         str(rv_analysis$icc_scores)
+      })
+
+      # Create workflow observers using centralized utility functions
+      create_workflow_observers(ns_workflow, ns, session)
+
+      # Initialize workflow icons on module load with current state
+      observe({
+        # Workflow icons are now updated centrally by the main server observer
+        logger::log_info("Workflow icons initialization skipped - handled centrally")
       })
 
       # Return analysis results

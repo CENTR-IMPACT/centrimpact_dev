@@ -1,49 +1,48 @@
 source("global.R")
 
 server <- function(input, output, session) {
-  
-
   # call database module
   output$my_db_output <- renderUI({
     my_db_ui("my_db")
   })
-  
+
   # make reactive connection object
   con <- reactiveVal({
     DBI::dbConnect(
-      drv = RSQLite::SQLite(), 
+      drv = RSQLite::SQLite(),
       dbname = paste0(
-        shinyMgrPath, 
-        "/database/shinymgr.sqlite")
+        shinyMgrPath,
+        "/database/shinymgr.sqlite"
       )
+    )
   })
-  
+
   # call server functions
   shiny::isolate({
     my_db_server("my_db", con)
     lapply(
-      X = DBI::dbListTables(conn = con()), 
+      X = DBI::dbListTables(conn = con()),
       FUN = function(X) {
         table_server(X, con)
       }
-    ) 
+    )
   })
 
-  # control the reactive db connection object 
+  # control the reactive db connection object
   observeEvent(
     eventExpr = {
       input$dev_tool_tabs
       input$tabs
-    }, 
+    },
     handlerExpr = {
       if (input$tabs == "DevTools" & input$dev_tool_tabs == "shinymgr_db") {
         # connecting to database
         con(
           DBI::dbConnect(
-            drv = RSQLite::SQLite(), 
-            dbname = paste0(shinyMgrPath, "/database/shinymgr.sqlite"))
+            drv = RSQLite::SQLite(),
+            dbname = paste0(shinyMgrPath, "/database/shinymgr.sqlite")
           )
-
+        )
       } else {
         if (DBI::dbIsValid(con())) {
           # disconnecting
@@ -52,9 +51,9 @@ server <- function(input, output, session) {
       } # end not being on database tab
     } # end handler expr
   ) # end observe event
-  
+
   # disconnect from the database when the session is ended
-  session$onSessionEnded(function(){
+  session$onSessionEnded(function() {
     shiny::isolate({
       # session ended
       if (DBI::dbIsValid(con())) {
@@ -63,9 +62,9 @@ server <- function(input, output, session) {
       } # end disconnecting if still connected
     })
   })
-  
+
   # also disconnect if session stops
-  onStop(function(){
+  onStop(function() {
     shiny::isolate({
       # session stopped
       if (DBI::dbIsValid(con())) {
@@ -74,37 +73,45 @@ server <- function(input, output, session) {
       } # end disconnecting if still connected
     })
   })
-  
+
   # call the  new_analyses module ui -----------------------------
   output$new_analysis <- renderUI({
     new_analysis_ui("new_analysis")
   })
-  
+
   new_analysis_server(
-    id = "new_analysis", 
-    tabSelect = reactive({input$tabs}), 
+    id = "new_analysis",
+    tabSelect = reactive({
+      input$tabs
+    }),
     shinyMgrPath = shinyMgrPath
-    )
-  
+  )
+
   # call the new_report module ui -----------------------------
   output$new_report <- renderUI({
     new_report_ui("new_report")
   })
-  
+
   new_report_server(
     id = "new_report"
-    )
-  
+  )
+
   # call the buildApp module ui -----------------------------
   output$build_app <- renderUI({
     app_builder_ui("app_builder")
   })
-  
+
   # Render dynamics score display
   output$dynamics_score_display <- renderUI({
-    has_score <- !is.null(modules$analyze$dynamics_score) && !is.null(modules$analyze$dynamics_score())
-    score_value <- if (has_score) format(round(as.numeric(modules$analyze$dynamics_score()), 2), nsmall = 2) else "-.--"
-    
+    # Check if modules and analyze module exist before accessing
+    if (is.null(modules$analyze) || is.null(modules$analyze$dynamics_score)) {
+      has_score <- FALSE
+      score_value <- "-.--"
+    } else {
+      has_score <- !is.null(modules$analyze$dynamics_score)
+      score_value <- if (has_score) format(round(as.numeric(modules$analyze$dynamics_score), 2), nsmall = 2) else "-.--"
+    }
+
     div(
       class = if (has_score) "has-score" else "no-score",
       style = if (!has_score) "color: #D3D3D3;" else "",
@@ -115,12 +122,18 @@ server <- function(input, output, session) {
       )
     )
   })
-  
+
   # Render cascade score display
   output$cascade_score_display <- renderUI({
-    has_score <- !is.null(modules$analyze$cascade_score) && !is.null(modules$analyze$cascade_score())
-    score_value <- if (has_score) format(round(as.numeric(modules$analyze$cascade_score()), 2), nsmall = 2) else "-.--"
-    
+    # Check if modules and analyze module exist before accessing
+    if (is.null(modules$analyze) || is.null(modules$analyze$cascade_score)) {
+      has_score <- FALSE
+      score_value <- "-.--"
+    } else {
+      has_score <- !is.null(modules$analyze$cascade_score)
+      score_value <- if (has_score) format(round(as.numeric(modules$analyze$cascade_score), 2), nsmall = 2) else "-.--"
+    }
+
     div(
       class = if (has_score) "has-score" else "no-score",
       style = if (!has_score) "color: #D3D3D3;" else "",
@@ -131,30 +144,45 @@ server <- function(input, output, session) {
       )
     )
   })
-  
+
   # Render alignment icon with conditional color
   output$alignment_icon <- renderUI({
-    has_score <- !is.null(modules$analyze$alignment_score) && !is.null(modules$analyze$alignment_score())
+    # Check if modules and analyze module exist before accessing
+    if (is.null(modules$analyze) || is.null(modules$analyze$alignment_score)) {
+      has_score <- FALSE
+    } else {
+      has_score <- !is.null(modules$analyze$alignment_score)
+    }
     icon_style <- if (has_score) "font-size: 1em;" else "font-size: 1em; color: #D3D3D3;"
     ph("flower-lotus", weight = "regular", style = icon_style)
   })
-  
+
   # Render dynamics icon with conditional color
   output$dynamics_icon <- renderUI({
-    has_score <- !is.null(modules$analyze$dynamics_score) && !is.null(modules$analyze$dynamics_score())
+    # Check if modules and analyze module exist before accessing
+    if (is.null(modules$analyze) || is.null(modules$analyze$dynamics_score)) {
+      has_score <- FALSE
+    } else {
+      has_score <- !is.null(modules$analyze$dynamics_score)
+    }
     icon_style <- if (has_score) "font-size: 1em;" else "font-size: 1em; color: #D3D3D3;"
     ph("pulse", weight = "regular", style = icon_style)
   })
-  
+
   # Render cascade icon with conditional color
   output$cascade_icon <- renderUI({
-    has_score <- !is.null(modules$analyze$cascade_score) && !is.null(modules$analyze$cascade_score())
+    # Check if modules and analyze module exist before accessing
+    if (is.null(modules$analyze) || is.null(modules$analyze$cascade_score)) {
+      has_score <- FALSE
+    } else {
+      has_score <- !is.null(modules$analyze$cascade_score)
+    }
     icon_style <- if (has_score) "font-size: 1em;" else "font-size: 1em; color: #D3D3D3;"
     ph("waveform", weight = "regular", style = icon_style)
   })
 
   reset_builder <- app_builder_server(
-    'app_builder',
+    "app_builder",
     shinyMgrPath = shinyMgrPath
   )
 
@@ -166,18 +194,18 @@ server <- function(input, output, session) {
       })
     }
   })
-  
+
   # call the add_report module ui and server ----------
   output$add_report_output <- renderUI({
     add_report_ui("add_report")
   })
-  
+
   add_report_server(
-    id = "add_report", 
+    id = "add_report",
     shinyMgrPath = shinyMgrPath
   )
-  
-  #call the query module ui and server -----------
+
+  # call the query module ui and server -----------
   output$query_output <- renderUI({
     queries_ui("queries")
   })
@@ -185,16 +213,31 @@ server <- function(input, output, session) {
     id = "queries",
     shinyMgrPath = shinyMgrPath
   )
-  
-  # Initialize the workflow object
+
+  # Initialize reactive values for app state
+  data_entry_mode <- reactiveVal(FALSE) # FALSE = manual entry, TRUE = upload
+  snapshot_mode <- reactiveVal(FALSE) # Add this if not already present
+
+  # Initialize the workflow object with safe defaults
   ns_workflow <- reactiveValues(
-    stage = "Not Started",
+    stage = "Project Setup",
+    status = "not started",
     alignment_data = NULL,
     dynamics_data = NULL,
-    cascade_data = NULL,
-    workflow_step = "pre-init",
-    workflow_status = "not started"
+    cascade_data = NULL
   )
+
+  # Log the initial workflow state for debugging
+  logger::log_info("ns_workflow contains:")
+  logger::log_info("- stage\n- status\n- alignment_data\n- dynamics_data\n- cascade_data")
+
+  # Workflow icons are now initialized directly by update_workflow_step function
+  # This initialization observer was causing reactive context errors
+  # Removed to prevent conflicts with centralized workflow management
+
+  # Workflow icons are now updated directly by update_workflow_step function
+  # This observer was causing circular dependencies and reactive context errors
+  # Removed to prevent conflicts with centralized workflow management
   ns_project <- reactiveValues(
     project_title = NULL,
     project_description = NULL,
@@ -215,27 +258,15 @@ server <- function(input, output, session) {
       stringsAsFactors = FALSE
     )
   )
-  
+
+  # Render project title in sidebar
+  output$project_title_text <- renderUI({
+    req(ns_project$project_title)
+    div(ns_project$project_title, class = "title-style")
+  })
+
   # Render project info text in sidebar
-  output$project_info_text <- renderUI({
-    if (!is.null(ns_project$project_title) && ns_project$project_title != "") {
-      session$sendCustomMessage("project-info-text", list(color = "#4A4A4A"))
-      ns_project$project_title
-    } else {
-      session$sendCustomMessage("project-info-text", list(color = "#D3D3D3"))
-      "Project Not Initiated"
-    }
-  })
-  
-  output$project_info_date <- renderUI({
-    if (!is.null(ns_project$project_report_date)) {
-      session$sendCustomMessage("project-info-date", list(color = "#4A4A4A"))
-      ns_project$project_report_date
-    } else {
-      session$sendCustomMessage("project-info-date", list(color = "#D3D3D3"))
-      "----------"
-    }
-  })
+  # Note: These are now handled in the setup module with proper namespacing
 
   output$workflow_step <- renderUI({
     step_text <- if (is.null(ns_workflow$workflow_step) || ns_workflow$workflow_step == "") {
@@ -243,19 +274,25 @@ server <- function(input, output, session) {
     } else {
       ns_workflow$workflow_step
     }
-    
+
     # Apply consistent styling
     tags$div(
       style = "color: #4A4A4A; text-transform: uppercase; font-family: var(--bs-font-code); font-size: 0.75em; text-align: center; margin-top: 8px;",
       step_text
     )
   })
-  
+
   # Render alignment score display with default value
   output$alignment_score_display <- renderUI({
-    has_score <- !is.null(modules$analyze$alignment_score) && !is.null(modules$analyze$alignment_score())
-    score_value <- if (has_score) format(round(as.numeric(modules$analyze$alignment_score()), 2), nsmall = 2) else "-.--"
-    
+    # Check if modules and analyze module exist before accessing
+    if (is.null(modules$analyze) || is.null(modules$analyze$alignment_score)) {
+      has_score <- FALSE
+      score_value <- "-.--"
+    } else {
+      has_score <- !is.null(modules$analyze$alignment_score)
+      score_value <- if (has_score) format(round(as.numeric(modules$analyze$alignment_score), 2), nsmall = 2) else "-.--"
+    }
+
     div(
       class = if (has_score) "has-score" else "no-score",
       div(
@@ -264,183 +301,164 @@ server <- function(input, output, session) {
       )
     )
   })
-  
+
   output$workflow_stage <- renderUI({
     stage_text <- if (is.null(ns_workflow$stage) || ns_workflow$stage == "") {
       "Status: Not Started"
     } else {
       ns_workflow$stage
     }
-    
+
     # Style to match workflow_step but with a different color
     tags$div(
       style = "color: #888888; text-transform: uppercase; font-family: var(--bs-font-sans-serif); font-size: 0.7em; text-align: center; margin-top: 2px;",
       stage_text
     )
   })
-  
-  
-    # Track which modules have been initialized
-  setup_initialized <- reactiveVal(FALSE)
-  load_clean_initialized <- reactiveVal(FALSE)
-  analyze_initialized <- reactiveVal(FALSE)
-  
-  # Store module instances
+
+
+  # Store module instances - initialize after setup module to avoid dependency issues
   modules <- reactiveValues(
     load_clean = NULL,
-    analyze = NULL
+    analyze = NULL,
+    visualize = NULL
   )
-  
-  # Initialize the load_clean module first
-  modules$load_clean <- mod_load_clean_server(
-    id = "load_clean_1",
-    ns_workflow = ns_workflow
-  )
-  
-  # Initialize the analyze module with access to ns_workflow
-  modules$analyze <- mod_analyze_server(
-    id = "analyze_data_1",
-    ns_workflow = ns_workflow
-  )
-  
-  # Log the initialization
-  message("Modules initialized successfully")
-  analyze_initialized(TRUE)
-  load_clean_initialized(TRUE)
-  
+
+  # Track which modules have been initialized
+  load_clean_initialized <- reactiveVal(FALSE)
+  analyze_initialized <- reactiveVal(FALSE)
+
   # Track workflow updates to prevent multiple updates
   workflow_updates <- reactiveValues(
     project_setup_initiated = FALSE,
-    load_data_initiated = FALSE,
-    clean_data_initiated = FALSE
+    load_data_initiated = FALSE
   )
-  
-  # Reactive value to store the report icons UI
-  report_icons <- reactiveVal(NULL)
-  
+
+  # Reactive value to store the report icons UI (unused - can be removed)
+  # report_icons <- reactiveVal(NULL)
+
+  # --- Project Setup Module: Call unconditionally at top-level ---
+  setup_module <- mod_setup_server(
+    id = "setup_1",
+    ns_authors = ns_authors,
+    ns_project = ns_project,
+    ns_workflow = ns_workflow
+  )
+
+  # Wire up the returned reactives to sidebar outputs
+  output$report_output_icons <- renderUI({
+    req(setup_module$icons())
+    setup_module$icons()
+  })
+
+  # Initialize other modules after setup module to avoid dependency issues
+  observe({
+    req(setup_module)
+    if (!load_clean_initialized()) {
+      logger::log_info("Initializing load_clean module...")
+      modules$load_clean <- mod_load_clean_server(
+        id = "load_clean_1",
+        ns_workflow = ns_workflow
+      )
+      load_clean_initialized(TRUE)
+      logger::log_info("load_clean module initialized successfully")
+    }
+  })
+
+  observe({
+    req(setup_module)
+    if (!analyze_initialized()) {
+      logger::log_info("Initializing analyze module...")
+      modules$analyze <- mod_analyze_server(
+        id = "analyze_data_1",
+        ns_workflow = ns_workflow
+      )
+      analyze_initialized(TRUE)
+      logger::log_info("analyze module initialized successfully")
+    }
+  })
+
+  observe({
+    req(setup_module)
+    if (is.null(modules$visualize)) {
+      logger::log_info("Initializing visualize module...")
+      modules$visualize <- mod_visualize_server(
+        id = "visualize_1",
+        ns_workflow = ns_workflow
+      )
+      logger::log_info("visualize module initialized successfully")
+    }
+  })
+
+
+
   # Single consolidated observer for main_navbar changes
   observeEvent(input$main_navbar, {
     req(input$main_navbar)
-    
     logger::log_info("Main tab changed to:", input$main_navbar)
     
     # Handle Project Setup tab
     if (input$main_navbar == "Project Setup") {
-      logger::log_info("Project Setup tab selected")
-      
-      # Initialize Project Setup module if not already done
-      if (!setup_initialized()) {
-        logger::log_info("Initializing Project Setup module")
-        # Store the module's server function output
-        setup_module <- mod_setup_server(
-          id = "setup_1",
-          ns_authors = ns_authors,
-          ns_project = ns_project,
-          ns_workflow = ns_workflow
-        )
-        
-        # Update the report_icons reactive value when it changes
-        observe({
-          if (!is.null(setup_module$report_icons_ui())) {
-            report_icons(setup_module$report_icons_ui())
-          }
-        })
-        
-        # Mark setup as initialized
-        setup_initialized(TRUE)
-      }
-      
       # Update workflow step if not already done
       if (!workflow_updates$project_setup_initiated) {
         logger::log_info("Updating Project Setup workflow to initiated")
         update_workflow_step(
           ns_workflow,
-          step = "Project Setup",
-          stage = "initiated",
-          session = session
+          stage = "Project Setup",
+          status = "initiated",
+          session = session,
+          ns = NULL
         )
         workflow_updates$project_setup_initiated <- TRUE
       }
     }
-    
+
     # Handle Upload Data tab
     if (input$main_navbar == "Upload Data") {
       logger::log_info("Upload Data tab selected")
-      
-      # Initialize Load Data module if not already done
-      if (!load_clean_initialized()) {
-        tryCatch({
-          logger::log_info("Initializing Load Data module...")
-          # Initialize the load_clean module with ns_workflow
-          modules$load_clean <- mod_load_clean_server(
-            id = "load_clean_1",
-            ns_workflow = ns_workflow
-          )
-          load_clean_initialized(TRUE)
-          logger::log_info("Load Data module initialized successfully")
-        }, error = function(e) {
-          logger::log_error("Failed to initialize Load Data module: {conditionMessage(e)}")
-          showNotification("Failed to initialize Load Data module. Please check the logs.", 
-                          type = "error", duration = 10)
-        })
-      }
-      
+
       # Update workflow steps if not already done
       if (!workflow_updates$load_data_initiated) {
         logger::log_info("Updating Upload Data workflow to initiated")
         update_workflow_step(
           ns_workflow,
-          step = "Upload Data",
-          stage = "initiated",
-          session = session
+          stage = "Upload Data",
+          status = "initiated",
+          session = session,
+          ns = NULL
         )
         workflow_updates$load_data_initiated <- TRUE
       }
-      
-      if (!workflow_updates$clean_data_initiated) {
-        logger::log_info("Updating Clean Data workflow to initiated")
-        update_workflow_step(
-          ns_workflow,
-          step = "Clean Data",
-          stage = "initiated",
-          session = session
-        )
-        workflow_updates$clean_data_initiated <- TRUE
-      }
-      
-      # Handle Analyze Data tab
-      if (input$main_navbar == "Analyze Data") {
-        message("Analyze Data tab selected")
-        logger::log_info("Analyze Data tab selected")
-        
-        # Just log the current status, module is already initialized at the top level
-        logger::log_info("Analyze module initialization status: ", analyze_initialized())
-        
-        # Log the current alignment data status
-        if (!is.null(modules$load_clean) && !is.null(modules$load_clean$rv$alignment)) {
-          logger::log_info("Alignment data is available in load_clean module")
-        } else {
-          logger::log_warn("No alignment data available in load_clean module")
-        }
+    }
+
+    # Handle Analyze Data tab
+    if (input$main_navbar == "Analyze Data") {
+      message("Analyze Data tab selected")
+      logger::log_info("Analyze Data tab selected")
+
+      # Just log the current status, module is already initialized at the top level
+      logger::log_info("Analyze module initialization status: ", analyze_initialized())
+
+      # Log the current alignment data status
+      if (!is.null(modules$load_clean) && !is.null(modules$load_clean$rv$alignment)) {
+        logger::log_info("Alignment data is available in load_clean module")
+      } else {
+        logger::log_warn("No alignment data available in load_clean module")
       }
     }
   }, ignoreInit = TRUE)
-  
+
   # Render the report icons in the main app
-  output$report_output_icons <- renderUI({
-    req(report_icons())
-    report_icons()
-  })
-  
+  # (Handled above with setup_module return values)
+
   # Observer for skip_overview toggle to switch tabs
   # Track the overview mode state
   overview_mode <- reactiveVal(FALSE)
   theme_mode <- reactiveVal("light")
-  snapshot_mode <- reactiveVal(FALSE)
-  
+
   # Toggle dark mode when the theme button is clicked
   observeEvent(input$toggle_theme, {
-    if(theme_mode() == "light") {
+    if (theme_mode() == "light") {
       theme_mode("dark")
     } else {
       theme_mode("light")
@@ -448,7 +466,7 @@ server <- function(input, output, session) {
     bslib::toggle_dark_mode(mode = theme_mode(), session = session)
   })
 
-  
+
   # Render the theme indicator icon
   output$theme_indicator <- renderUI({
     if (theme_mode() == "dark") {
@@ -457,28 +475,53 @@ server <- function(input, output, session) {
       ph("sun", weight = "bold")
     }
   })
-  
+
   # Render the overview indicator icon
   output$overview_indicator <- renderUI({
     if (isTRUE(overview_mode())) {
-      ph("rocket-launch", weight = "bold")
+      ph("rocket-launch", weight = "light", class = "indicator-icon")
     } else {
-      ph("lighthouse", weight = "bold")
+      ph("lighthouse", weight = "light", class = "indicator-icon")
     }
   })
-  
+
+  # Render the data entry mode indicator icon
+  output$data_entry_indicator <- renderUI({
+    if (isTRUE(data_entry_mode())) {
+      bsicons::bs_icon("input-cursor-text", class = "indicator-icon")
+    } else {
+      bsicons::bs_icon("cloud-plus", class = "indicator-icon")
+    }
+    # data_entry_mode(!data_entry_mode())
+  })
+
+  # Render the snapshot indicator icon
   output$snapshot_indicator <- renderUI({
     if (isTRUE(snapshot_mode())) {
-      ph("disk", weight = "bold")
+      bsicons::bs_icon("bookmark-check", class = "indicator-icon")
     } else {
-      ph("camera", weight = "bold")
+      ph("camera", weight = "light", class = "indicator-icon")
     }
   })
-  
+
+  observeEvent(input$data_entry_mode, {
+    # Toggle the data entry mode state
+    data_entry_mode(!data_entry_mode())
+
+    if (isTRUE(data_entry_mode())) {
+      entry_mode <- "upload"
+    } else {
+      entry_mode <- "manual"
+    }
+
+    # Log the current data entry mode state
+    logger::log_info("Data entry mode toggled to: ", entry_mode)
+  })
+
   observeEvent(input$overview_mode, {
     # Toggle the overview mode state
     overview_mode(!overview_mode())
-    
+
     # Set the target tab based on the overview mode state
     target_tab <- if (isTRUE(overview_mode())) {
       list(
@@ -497,17 +540,17 @@ server <- function(input, output, session) {
         "generate_1-generate_tabs" = "Overview"
       )
     }
-    
+
     # Update each navset if it exists
     for (nav_id in names(target_tab)) {
       # Extract module ID and tab ID
       ids <- strsplit(nav_id, "-")[[1]]
       module_id <- ids[1]
       tab_id <- ids[2]
-      
+
       # Construct the namespaced input ID
       ns_tab_id <- paste0(module_id, "-", tab_id)
-      
+
       # Check if the tab exists and is different from target
       if (!is.null(input[[ns_tab_id]]) && input[[ns_tab_id]] != target_tab[[nav_id]]) {
         # Update the tab
@@ -519,5 +562,29 @@ server <- function(input, output, session) {
       }
     }
   })
-  
+
+  # Initialize the main workflow UI on startup
+  # Note: Workflow UI updates are now handled within individual modules
+  # since the main server doesn't have access to module namespaces
+
+  # Handle JavaScript warnings and log them properly
+  observeEvent(input$js_warning, {
+    req(input$js_warning)
+    warning_data <- input$js_warning
+
+    switch(warning_data$type,
+      "element_not_found" = {
+        logger::log_warn("JavaScript: Element '{warning_data$element}' not found in DOM")
+      },
+      "icon_not_found" = {
+        logger::log_warn("JavaScript: Icon element not found in '{warning_data$element}'")
+      },
+      "workflow_icon_not_found" = {
+        logger::log_warn("JavaScript: Workflow icon span '{warning_data$element}' not found in DOM")
+      },
+      {
+        logger::log_warn("JavaScript: Unknown warning type '{warning_data$type}' for element '{warning_data$element}'")
+      }
+    )
+  })
 } # end of server function
