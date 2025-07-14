@@ -2,6 +2,8 @@
 
 Welcome to the CEnTR*IMPACT Toolkit! This guide will help you get the app running on your computer, even if you're new to R and RStudio.
 
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
+
 ## Prerequisites
 
 Before starting, make sure you have a stable internet connection for downloading software and packages.
