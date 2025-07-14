@@ -7,34 +7,31 @@ thematic::thematic_shiny()
 # Define a custom theme for the application
 custom_theme <- bslib::bs_theme(
   version = 5,
-  bootswatch = "bootstrap",
-  base_font = bslib::font_google("Lato", wght = c(400, 700)),
-  code_font = bslib::font_google("IBM Plex Mono", wght = c(400, 700)),
+  base_font = bslib::font_google("Lato", wght = c(400, 600)),
   heading_font = bslib::font_google("Lora", wght = c(400, 700)),
-  enable_gradients = TRUE,
-  enable_shadows = TRUE,
-  enable_transitions = TRUE,
-  # navbar_bg = "transparent", # "#3F5E78",
-  "sidebar-emphasis-bg" = "#d2bfa3",
-  fg = "#4A4A4A",
-  bg = "#f8f4ef",
-  primary = "#3B6B35",
-  secondary = "#d2bfa3", # "#3F5E78",
-  success = "#4B7F52",
-  info = "#3F51B5",
-  warning = "#E18B4E",
-  danger = "#990000",
-  light = "#f0e5d7",
-  dark = "#4A4A4A",
+  code_font = bslib::font_google("IBM Plex Mono", wght = c(400, 600)),
+  bg = "#EDEAE2", # Main app background (lightest warm neutral)
+  fg = "#2A2A2A", # Default text color (dark soft grey)
 
-  # Dark mode settings
-  bg_select = "#4A4A4A",
-  fg_select = "#F2ECD7",
+  primary = "#3B6B35", # Forest green (for primary actions like "Clean Data")
+  secondary = "#CC6B4D", # Terracotta/Burnt Orange (secondary accent, for "Browse" buttons, hover states)
+  success = "#3B6B35", # Keep success same as primary
+  warning = "#D17C45", # Existing warm warning
+  danger = "#A64B42", # Existing muted red danger
 
-  # Sidebar-specific
-  "sidebar-bg" = "#f0e5d7",
-  "sidebar-fg" = "#4A4A4A"
+  "sidebar-bg" = "#5C5A58", # **Crucial: Darker, rich warm grey/brown for sidebar background**
+  "sidebar-fg" = "#F5F1E8", # **Crucial: Creamy white for text/icons on dark sidebar**
+
+  "navbar-bg" = "#5C5A58", # Rich brown (darkest, strong anchor)
+  "navbar-fg" = "#F5F1E8", # Creamy white for navbar text/links
+
+  "card-bg" = "#E2D8C3", # For accordions, cards (slightly darker than main bg)
+  "accordion-bg" = "#E2D8C3", # Explicitly set accordion panel bg if different from card-bg
+  "accordion-active-bg" = "#B8A989", # Darker highlight for active accordion header
+  "input-bg" = "#FDF5E6", # A very light cream for input fields, stands out from card-bg
+  "border-color" = "#C8BFA6" # A general border color for consistency
 )
+
 
 ui <- tagList(
   shinyjs::useShinyjs(),
@@ -49,21 +46,27 @@ ui <- tagList(
       ),
       tags$link(
         href = "https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap",
-        rel="stylesheet"
-          ),
+        rel = "stylesheet"
+      ),
       tags$link(
         href = "https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap>",
         rel = "stylesheet"
       ),
-      tags$link(rel="stylesheet",
-                href="https://fontlibrary.org//face/fantasque-sans-mono",
-                type="text/css"),
-      tags$link(rel="stylesheet",
-                href="https://fontlibrary.org//face/grundschrift",
-                type="text/css"),
-      tags$link(rel = "stylesheet",
-                type = "text/css",
-                href = "custom.css"),
+      tags$link(
+        rel = "stylesheet",
+        href = "https://fontlibrary.org//face/fantasque-sans-mono",
+        type = "text/css"
+      ),
+      tags$link(
+        rel = "stylesheet",
+        href = "https://fontlibrary.org//face/grundschrift",
+        type = "text/css"
+      ),
+      tags$link(
+        rel = "stylesheet",
+        type = "text/css",
+        href = "custom.css"
+      ),
       tags$script(HTML("
   Shiny.addCustomMessageHandler('highlightWorkflowIcon', function(message) {
     // Validate message and required properties
@@ -105,52 +108,16 @@ ui <- tagList(
 
 "))
     ),
-    footer = tags$footer(
-      class = "d-flex align-items-center justify-content-start gap-2",
-      style = "background-color: rgba(255, 255, 255, 0.1); 
-      padding: 0.25em;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 8px #00000022;
-      border-radius: 12px;
-      font-family: 'Share Tech Mono', var(--bs-code-font) !important;
-      font-size: 0.7em;
-      text-transform: uppercase;
-      color: #4A4A4A;",
-      fluidRow(
-        column(
-          width = 3,
-          class = "d-flex align-items-center justify-content-evenly gap-2",
-          style = "border-right: solid 1px #4a4a4a44; padding-right: 2em; padding-left: 2em;",
-      img(
-        src = "centr-logo.png",
-        class = "header-logo",
-        style = "max-height: 5vh; width: auto; display: block;"
-      ),
-      div(
-        "Powered by the CEnTR*IMPACT Libraries for R"
-        ),
-      icon("r-project", class = "fa-2x", style = "color: #276DC2;")
-        ),
-      column(
-        width = 9,
-        class = "d-flex align-items-center justify-content-center",
-        style = "text-align: center;",
-      div(
-        "Funded in part by the Coaltion for Urban and Metropolitan Universities (CUMU), 
-        the Collaboratory, and the Indiana University Office of the Vice President for Research."
-      )
-        )
-      )
-    ),
     sidebar = bslib::sidebar(
       position = "left",
+      style = "background-color: #333333; color: #F5F1E8; height: 100%;",
       fluidRow(
         div(
-          class = "d-flex align-items-center justify-content-center gap-2 infocard",
+          class = "d-flex align-items-center justify-content-center gap-2",
           ph("cards-three", weight = "light", class = "sidebar-icon"),
           "Status",
-          style = "width: 85%; font-size: 1em !important; color: #4a4a4a; font-weight: light; text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
-          border-top: solid 1px #d3d3d366; border-bottom: solid 1px #d3d3d366; padding: 0.25em; margin: 0.25em auto 0.25em auto !important;"
+          #         style = "width: 85%; font-size: 1em !important; color: #4a4a4a; font-weight: light; text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
+          #          border-top: solid 1px #d3d3d366; border-bottom: solid 1px #d3d3d366; padding: 0.25em; margin: 0.25em auto 0.25em auto !important;"
         )
       ),
       fluidRow(
@@ -165,14 +132,14 @@ ui <- tagList(
       ),
       fluidRow(
         div(
-          style = "color: #D3D3D366;",
+          style = "color: #D3D3D366; font-size: 0.8em;",
           class = "d-flex align-items-center justify-content-evenly gap-2",
-          ph("plant", weight = "light", class = "sidebar-icon", id = "workflow-setup"),
-          ph("upload", weight = "light", class = "sidebar-icon", id = "workflow-upload"),
-          ph("broom", weight = "light", class = "sidebar-icon", id = "workflow-clean"),
-          ph("calculator", weight = "light", class = "sidebar-icon", id = "workflow-analyze"),
-          ph("blueprint", weight = "light", class = "sidebar-icon", id = "workflow-visualize"),
-          ph("newspaper-clipping", weight = "light", class = "sidebar-icon", id = "workflow-generate")
+          span(id = "workflow-setup", uiOutput("workflow_setup_icon")),
+          span(id = "workflow-upload", uiOutput("workflow_upload_icon")),
+          span(id = "workflow-clean", uiOutput("workflow_clean_icon")),
+          span(id = "workflow-analyze", uiOutput("workflow_analyze_icon")),
+          span(id = "workflow-visualize", uiOutput("workflow_visualize_icon")),
+          span(id = "workflow-generate", uiOutput("workflow_generate_icon"))
         )
       ),
       fluidRow(
@@ -180,8 +147,8 @@ ui <- tagList(
           class = "d-flex align-items-center justify-content-center gap-2 infocard",
           bsicons::bs_icon("clipboard2-data", class = "sidebar-icon"),
           "Scores",
-          style = "width: 85%; font-size: 1em !important; color: #4a4a4a; font-weight: light; text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
-          border-top: solid 1px #d3d3d366; border-bottom: solid 1px #d3d3d366; padding: 0.25em; margin: 1.25em auto 0.25em auto !important;"
+          #          style = "width: 85%; font-size: 1em !important; color: #4a4a4a; font-weight: light; text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
+          #          border-top: solid 1px #d3d3d366; border-bottom: solid 1px #d3d3d366; padding: 0.25em; margin: 1.25em auto 0.25em auto !important;"
         )
       ),
       fluidRow(
@@ -189,10 +156,26 @@ ui <- tagList(
           class = "d-flex align-items-center justify-content-center gap-2 infocard",
           ph("toolbox", weight = "light", class = "sidebar-icon"),
           "Tools",
-          style = "width: 85%; font-size: 1em !important; color: #4a4a4a; font-weight: light; text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
-          border-top: solid 1px #d3d3d366; border-bottom: solid 1px #d3d3d366; padding: 0.25em; margin: 1.25em auto 0.25em auto !important;"
+          #          style = "width: 85%; font-size: 1em !important; color: #4a4a4a; font-weight: light; text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
+          #          border-top: solid 1px #d3d3d366; border-bottom: solid 1px #d3d3d366; padding: 0.25em; margin: 1.25em auto 0.25em auto !important;"
         )
       ),
+      # fluidRow(
+      #   column(
+      #     width = 10,
+      #     actionButton(
+      #       inputId = "overview_mode",
+      #       class = "d-flex align-items-center justify-content-center gap-1",
+      #       label = "Dark Mode",
+      #       style = "width: 100%; font-size: 1em;"
+      #     )
+      #   ),
+      #   column(
+      #     width = 2,
+      #     class = "d-flex align-items-center justify-content-center",
+      #     bslib::input_dark_mode()
+      #   )
+      # ),
       fluidRow(
         column(
           width = 10,
@@ -248,24 +231,21 @@ ui <- tagList(
       title = "Home",
       icon = ph("map-pin-area", weight = "bold"),
       mod_home_ui("home_1"),
-      style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
-      class = "neumorphic"
+      class = "main_content"
     ),
     bslib::nav_panel(
       title = "Project Setup",
       icon = ph("toolbox", weight = "fill"),
       mod_setup_ui("setup_1"),
-      style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
-      class = "neumorphic"
+      class = "main_content"
     ),
     bslib::nav_panel(
       title = "Upload Data",
       icon = ph("pencil-ruler", weight = "fill"),
       mod_load_clean_ui("load_clean_1"),
-      style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
-      class = "neumorphic"
+      class = "main_content"
     ),
-        bslib::nav_panel(
+    bslib::nav_panel(
       title = "Enter Data",
       icon = ph("pencil-ruler", weight = "fill"),
       mod_enter_data_ui("enter_data_1"),

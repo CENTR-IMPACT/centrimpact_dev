@@ -14,18 +14,11 @@
 mod_home_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    bslib::card(
-      bslib::card_header(
-        style = "background-color: #F2ECD7; border-radius: 0px 0px 10px 10px !important;
-      box-shadow: inset 0 4px 10px #8e838066 !important;",
         img(
           src = "centr_logo.png",
           class = "header-logo",
           style = "max-width: 80%; height: auto; max-height: 120px; margin: 0 auto 20px; display: block;"
-        )
       ),
-      bslib::card_body(
-        class = "main_content",
         fluidRow(
           column(
             width = 6,
@@ -53,8 +46,6 @@ mod_home_ui <- function(id) {
           )
         )
       )
-    )
-  )
 }
 
 

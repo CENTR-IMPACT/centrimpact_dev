@@ -48,30 +48,29 @@ mod_setup_ui <- function(id) {
     # shinyToastify::useShinyToastify(),
     # shiny::useBusyIndicators(),
     # waiter::useWaiter(),
-    bslib::navset_card_pill(
-      id = "setup_nav",
-      tags$head(
-        tags$style(HTML(paste0(
-          "#", ns("details_status_message, "),
-          "#", ns("author_status_message"), " {
+    tags$head(
+      tags$style(HTML(paste0(
+        "#", ns("details_status_message, "),
+        "#", ns("author_status_message"), " {
           display: block;
           padding-left: 0.5em;
           z-index: 10;
           width: 100%;
           font-family: 'Share Tech Mono' !important;
         }"
-        )))
-      ),
-      bslib::nav_panel(
+      )))
+    ),
+    bslib::accordion(
+      id = ns("setup_accordion"),
+      multiple = FALSE,
+      bslib::accordion_panel(
         value = "overview",
-        class = "main_content",
-        tagList(ph("lighthouse"), HTML("&nbsp;"), "Overview"), # Tab label
+        title = tagList(ph("lighthouse"), HTML("&nbsp;"), "Overview"),
         fluidRow(
           column(
             width = 8,
-            h1("Project Setup"),
             p("This module allows you to set up your project by selecting a directory, entering project details, and creating the necessary project structure. You can also edit author information and project configuration at any time."),
-            p("Please follow the steps in the tabs below to complete the project setup.")
+            p("Please follow the steps in the accordions below to complete the project setup.")
           ),
           column(
             width = 4,
@@ -83,335 +82,280 @@ mod_setup_ui <- function(id) {
           )
         )
       ),
-      bslib::nav_panel(
-        value = "project details",
-        class = "main_content",
-        tagList(ph("clipboard-text"), HTML("&nbsp;"), "Project Details"),
-        fluidRow(
-          column(
-            width = 7,
-            bslib::card(
-              style = "width: 100% !important;
-                        border-radius: 12px !important;
-                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
-                border: 1px solid #8e8380 !important;",
-              bslib::card_header(
-                style = "box-shadow: 10px #00000044; background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%);",
-                fluidRow(
-                  column(
-                    width = 8,
-                    h1("Project Details")
-                  ),
-                  column(
-                    width = 4,
-                    div(
-                      class = "status-line",
-                      column(
-                        width = 1,
-                        div(
-                          style = "color: #3F5E78;",
-                          id = ns("details_status_icon"),
-                          ph("check-circle", weight = "bold", class = "sidebar-icon")
-                        )
-                      ),
-                      column(
-                        width = 11,
-                        div(
-                          span(
-                            style = "color: #3F5E78;",
-                            id = ns("details_status_message"),
-                            "Ready",
-                            ph("check-circle", weight = "regular", class = "sidebar-icon")
-                          )
-                        )
-                      )
-                    )
-                  )
-                )
-              ),
-              bslib::card_body(
-                class = "infocard neumorphic",
-                style = "padding: 1.5em 2.5em 0em 2.5em !important; border-radius: 0px 0px 10px 10px !important; box-shadow: inset 0 4px 10px #8e838044 !important;",
-                fluidRow(
-                    class = "formrow",
-                    column(
-                      width = 6,
-                      style = "padding-right: 1em; align-items: flex-start;",
-                      textInput(
-                        ns("project_title"),
-                          "Project Title",
-                        placeholder = "Enter project title",
-                        width = "100%"
-                      )
-                    ),
-                    column(
-                      width = 6,
-                      style = "padding-left: 1em;",
-                      dateInput(
-                        ns("report_date"),
-                        "Report Date",
-                        value = Sys.Date(), # Set default to today
-                        width = "100%",
-                        format = "yyyy-mm-dd",
-                        startview = "month"
-                      )
-                    )
-                  ),
-                  div(
-                    class = "formrow",
-                    textAreaInput(
-                      ns("project_description"),
-                      "Project Description",
-                      placeholder = "Enter a concise description of your project...",
-                      rows = 3, resize = "vertical", width = "90%"
-                    )
-                  ),
-                  div(
-                    class = "formrow",
-                    column(
-                      width = 6,
-                      style = "align-items: flex-start;",
-                      checkboxGroupInput(
-                        ns("report_formats"),
-                          "Report Formats",
-                        width = "100%",
-                        inline = TRUE,
-                        choiceNames =
-                          list("Website", "PDF", "Word", "LaTeX", "Typst"),
-                        choiceValues =
-                          list("html", "pdf", "docx", "latex", "typst")
-                      )
-                    ),
-                    column(
-                      width = 6,
-                      style = "padding-left: 1em;",
-                      selectizeInput(
-                        inputId = ns("project_keywords"),
-                        label = "Project Keywords",
-                        width = "100%",
-                        choices = NULL,
-                        multiple = TRUE,
-                        options = list(
-                          create = TRUE,
-                          delimiter = ",",
-                          placeholder = "Enter keywords separated by commas..."
-                        )
-                      )
-                    )
-                  )
-                )
-              )
+      bslib::accordion_panel(
+        value = "project_details",
+        title = tagList(ph("clipboard-text"), HTML("&nbsp;"), "Project Details"),
+        div(
+          class = "status-line",
+          style = "display: flex; align-items: center; gap: 0.5em; margin-bottom: 1.25em;",
+          div(
+            style = "color: #3F5E78;",
+            id = ns("details_status_icon"),
+            ph("check-circle", weight = "bold", class = "sidebar-icon")
           ),
-          column(
-            width = 5,
-            style = "padding-left: 2em;",
-            create_actions_card(ns,
-              action_buttons = list(
-                actionButton(
-                  ns("initiate_project"),
-                  tagList(
-                    ph("floppy-disk", weight = "bold"),
-                    HTML("&nbsp;"),
-                    "Save Project Details"
-                  ),
-                  class = "btn-lrg action-button action-cascade",
-                  style = "width: 90% !important;"
-                ),
-                actionButton(
-                  ns("reset_form"),
-                  tagList(
-                    ph("arrow-counter-clockwise"),
-                    HTML("&nbsp;"),
-                    "Reset Form"
-                  ),
-                  class = "action-button action-full",
-                  style = "width: 90% !important;"
-                )
-              ),
-              progress_bars = list(
-                NULL,
-                NULL
-              )
-            )
+          span(
+            style = "color: #3F5E78;",
+            id = ns("details_status_message"),
+            "Ready"
           )
-        )
-      ),
-      bslib::nav_panel(
-        value = "author_information",
-        class = "main_content",
-        tagList(ph("user-list"), HTML("&nbsp;"), "Author Information"),
+        ),
         fluidRow(
           column(
-            width = 7,
-            create_info_card(
-              ns,
-              title = "Author Information",
-              icon = "user-list",
-              status = "author",
-              content = tagList(
-                p("You may edit the author information. This information will be used in the project configuration and can be updated at any time. The author information is stored in a YAML file called `authors.yml` located in the `config` directory of your project."),
-                div(
-                  class = "formrow",
-                  shinyWidgets::textInputIcon(
-                    inputId = ns("author_name"),
-                    label = tagList("Author Name", ph("asterisk", weight = "bold")),
-                    placeholder = "Enter author name",
-                    icon = icon("user"),
-                    width = "90%"
-                  )
-                ),
-                div(
-                  class = "formrow",
-                  column(
-                    width = 6,
-                    style = "padding-right: 1em;",
-                    shinyWidgets::textInputIcon(
-                      inputId = ns("author_affiliation"),
-                      label = "Author Affiliation",
-                      placeholder = "Enter author affiliation",
-                      icon = icon("building-columns"),
-                      width = "90%"
-                    )
-                  ),
-                  column(
-                    width = 6,
-                    style = "padding-left: 1em;",
-                    shinyWidgets::textInputIcon(
-                      inputId = ns("author_orcid"),
-                      label = "Author ORCID",
-                      placeholder = "XXXX-XXXX-XXXX-XXXX",
-                      icon = icon("orcid"),
-                      width = "90%"
-                    )
-                  )
-                ),
-                div(
-                  class = "formrow",
-                  column(
-                    width = 6,
-                    style = "padding-right: 1em;",
-                    shinyWidgets::textInputIcon(
-                      inputId = ns("author_email"),
-                      label = "Author Email",
-                      placeholder = "Enter author email",
-                      icon = icon("at"),
-                      width = "90%"
-                    )
-                  ),
-                  column(
-                    width = 6,
-                    style = "padding-left: 1em;",
-                    shinyWidgets::textInputIcon(
-                      inputId = ns("author_url"),
-                      label = "Author URL",
-                      placeholder = "https://",
-                      icon = icon("link"),
-                      width = "90%"
-                    )
-                  )
-                )
-              )
+            width = 6,
+            style = "padding-right: 1em;",
+            textInput(
+              ns("project_title"),
+              "Project Title",
+              placeholder = "Enter project title",
+              width = "100%"
             )
           ),
           column(
-            width = 5,
-            create_pill_info_card(
-              ns,
-              title = "Actions",
-              icon = "person-simple-tai-chi",
-              tabs = list(
-                list(
-                  title = "Main",
-                  type = "actions",
-                  icon = "person-simple-tai-chi",
-                  action_buttons = list(
-                    actionButton(
-                      ns("add_author_btn"),
-                      tagList(
-                        ph("user-circle-plus"),
-                        HTML("&nbsp;"),
-                        "Add Author"
-                      ),
-                      class = "btn-lrg action-button action-cascade",
-                      style = "width: 90% !important;"
-                    ),
-                    actionButton(
-                      ns("download_authors"),
-                      tagList(
-                        ph("file-arrow-down"),
-                        HTML("&nbsp;"),
-                        "Download authors.yml"
-                      ),
-                      class = "action-button action-dynamics",
-                      style = "width: 90% !important;"
-                    ),
-                    actionButton(
-                      ns("reset_author_form"),
-                      tagList(
-                        ph("arrow-counter-clockwise"),
-                        HTML("&nbsp;"),
-                        "Reset Form"
-                      ),
-                      class = "action-button action-full",
-                      style = "width: 90% !important;"
-                    )
-                  ),
-                  progress_bars = list(
-                    NULL,
-                    NULL,
-                    NULL
-                  )
-                ),
-                list(
-                  title = "Preview",
-                  type = "info",
-                  icon = "brackets-curly",
-                  content = tagList(
-                    shinyAce::aceEditor(
-                      outputId = ns("author_yaml_code"),
-                      mode = "yaml",
-                      theme = "github",
-                      height = "300px",
-                      fontSize = 14,
-                      debounce = 750,
-                      autoScrollEditorIntoView = TRUE,
-                      highlightActiveLine = TRUE
-                    )
-                  )
-                )
-              )
+            width = 6,
+            style = "padding-left: 1em;",
+            dateInput(
+              ns("report_date"),
+              "Report Date",
+              value = Sys.Date(),
+              width = "100%",
+              format = "yyyy-mm-dd",
+              startview = "month"
             )
           )
-        )
-      ),
-      bslib::nav_panel(
-        # value = "project_configuration",
-        tagList(ph("palette"), HTML("&nbsp;"), "Branding"),
-        # Section ----
+        ),
         fluidRow(
-          # Section ----
           column(
             width = 12,
-            div(
-              h4(
-                tagList(
-                  "Edit Project Branding ",
-                  ph("palette", style = "margin-left: 10px;")
-                )
-              )
+            textAreaInput(
+              ns("project_description"),
+              "Project Description",
+              placeholder = "Enter a concise description of your project",
+              rows = 3,
+              resize = "vertical",
+              width = "100%"
             )
           )
         ),
         fluidRow(
           column(
             width = 6,
-            div(
-              style = "gap: 10px;",
-              p("You may edit the project configuration. This information will be used in the project configuration and can be updated at any time. The project configuration is stored in a YAML file called `config.yml` located in the `config` directory of your project."),
+            style = "padding-right: 1em;",
+            checkboxGroupInput(
+              ns("report_formats"),
+              "Report Formats",
+              width = "100%",
+              inline = TRUE,
+              choiceNames = list("Website", "PDF", "Word", "LaTeX", "Typst"),
+              choiceValues = list("html", "pdf", "docx", "latex", "typst")
             )
           ),
           column(
             width = 6,
+            style = "padding-left: 1em;",
+            selectizeInput(
+              inputId = ns("project_keywords"),
+              label = "Project Keywords",
+              width = "100%",
+              choices = NULL,
+              multiple = TRUE,
+              options = list(
+                create = TRUE,
+                delimiter = ",",
+                placeholder = "Enter keywords separated by commas"
+              )
+            )
+          )
+        ),
+        fluidRow(
+          div(
+            class = "d-flex justify-content-evenly align-items-center",
+            actionButton(
+              ns("initiate_project"),
+              tagList(
+                ph("floppy-disk", weight = "bold"),
+                HTML("&nbsp;"),
+                "Save Project Details"
+              ),
+              class = "btn-lrg btn btn-primary"
+            ),
+            actionButton(
+              ns("reset_form"),
+              tagList(
+                ph("arrow-counter-clockwise"),
+                HTML("&nbsp;"),
+                "Reset Form"
+              ),
+              class = "btn btn-secondary"
+            )
+          )
+        )
+      ),
+      bslib::accordion_panel(
+        value = "author_information",
+        title = tagList(ph("user-list"), HTML("&nbsp;"), "Author Information"),
+        fluidRow(
+          column(
+            width = 12,
+            p("You may edit the author information. This information will be used in the project configuration and can be updated at any time. The author information is stored in a YAML file called `authors.yml` located in the `config` directory of your project.")
+          )
+        ),
+        fluidRow(
+          div(
+            class = "status-line",
+            style = "display: flex; align-items: center; gap: 0.5em; margin-bottom: 1.25em;",
+            div(
+              style = "color: #3F5E78;",
+              id = ns("author_status_icon"),
+              ph("check-circle", weight = "bold", class = "sidebar-icon")
+            ),
+            span(
+              style = "color: #3F5E78;",
+              id = ns("author_status_message"),
+              "Ready"
+            )
+          )
+        ),
+        fluidRow(
+          column(
+            width = 12,
+            shinyWidgets::textInputIcon(
+              inputId = ns("author_name"),
+              label = tagList("Author Name", ph("asterisk", weight = "bold")),
+              placeholder = "Enter author name",
+              icon = icon("user"),
+              width = "100%"
+            )
+          )
+        ),
+        fluidRow(
+          column(
+            width = 6,
+            style = "padding-right: 1em;",
+            shinyWidgets::textInputIcon(
+              inputId = ns("author_affiliation"),
+              label = "Author Affiliation",
+              placeholder = "Enter author affiliation",
+              icon = icon("building-columns"),
+              width = "100%"
+            )
+          ),
+          column(
+            width = 6,
+            style = "padding-left: 1em;",
+            shinyWidgets::textInputIcon(
+              inputId = ns("author_orcid"),
+              label = "Author ORCID",
+              placeholder = "XXXX-XXXX-XXXX-XXXX",
+              icon = icon("orcid"),
+              width = "100%"
+            )
+          )
+        ),
+        fluidRow(
+          column(
+            width = 6,
+            style = "padding-right: 1em;",
+            shinyWidgets::textInputIcon(
+              inputId = ns("author_email"),
+              label = "Author Email",
+              placeholder = "Enter author email",
+              icon = icon("at"),
+              width = "100%"
+            )
+          ),
+          column(
+            width = 6,
+            style = "padding-left: 1em;",
+            shinyWidgets::textInputIcon(
+              inputId = ns("author_url"),
+              label = "Author URL",
+              placeholder = "https://",
+              icon = icon("link"),
+              width = "100%"
+            )
+          )
+        ),
+        fluidRow(
+          column(
+            width = 12,
+            style = "margin-top: 2em; text-align: center;",
+            div(
+              class = "d-flex justify-content-evenly align-items-center",
+              actionButton(
+                ns("add_author_btn"),
+                tagList(
+                  ph("user-circle-plus"),
+                  HTML("&nbsp;"),
+                  "Add Author"
+                ),
+                class = "btn-lrg btn btn-primary"
+              ),
+              actionButton(
+                ns("download_authors"),
+                tagList(
+                  ph("file-arrow-down"),
+                  HTML("&nbsp;"),
+                  "Download authors.yml"
+                ),
+                class = "btn-lrg btn btn-primary"
+              ),
+              actionButton(
+                ns("reset_author_form"),
+                tagList(
+                  ph("arrow-counter-clockwise"),
+                  HTML("&nbsp;"),
+                  "Reset Form"
+                ),
+                class = "btn-lrg btn btn-secondary"
+              )
+            )
+          )
+        ),
+        fluidRow(
+          column(
+            width = 12,
+            style = "margin-top: 2em;",
+            h4("YAML Preview"),
+            shinyAce::aceEditor(
+              outputId = ns("author_yaml_code"),
+              mode = "yaml",
+              theme = "github",
+              height = "300px",
+              fontSize = 14,
+              debounce = 750,
+              autoScrollEditorIntoView = TRUE,
+              highlightActiveLine = TRUE
+            )
+          )
+        )
+      ),
+      bslib::accordion_panel(
+        value = "branding",
+        title = tagList(ph("palette"), HTML("&nbsp;"), "Branding"),
+        fluidRow(
+          column(
+            width = 12,
+            h4(tagList("Edit Project Branding ", ph("palette", style = "margin-left: 10px;")))
+          )
+        ),
+        fluidRow(
+          column(
+            width = 6,
+            p("You may edit the project configuration. This information will be used in the project configuration and can be updated at any time. The project configuration is stored in a YAML file called `config.yml` located in the `config` directory of your project.")
+          ),
+          column(
+            width = 6,
+            downloadButton(
+              outputId = ns("download_branding"),
+              label = "Download _brand.yml",
+              class = "btn-setup",
+              icon = icon("file-download")
+            )
+          )
+        ),
+        fluidRow(
+          column(
+            width = 12,
             shinyAce::aceEditor(
               outputId = ns("branding_yaml_code"),
               mode = "yaml",
@@ -421,12 +365,6 @@ mod_setup_ui <- function(id) {
               debounce = 750,
               autoScrollEditorIntoView = TRUE,
               highlightActiveLine = TRUE
-            ),
-            downloadButton(
-              outputId = ns("download_branding"),
-              label = "Download _brand.yml",
-              class = "btn-setup",
-              icon = icon("file-download")
             )
           )
         )
@@ -445,43 +383,50 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
 
     # Initialize input validation
     iv <- InputValidator$new()
-    
+
     # Validate Project Title - required and minimum length
     iv$add_rule("project_title", sv_required())
-    iv$add_rule("project_title", function(value) {
-      if (nchar(trimws(value)) < 3) {
-        "Project title must be at least 3 characters long"
-      }
-    })
-    
+
+    iv$add_rule("author_name", sv_required())
+
+    iv$add_rule("author_email", sv_optional())
+    iv$add_rule("author_email", sv_email())
+
+    iv$add_rule("author_url", sv_optional())
+    iv$add_rule("author_url", sv_url())
+
     # Validate Report Date - required and must be a valid date
     iv$add_rule("report_date", sv_required())
     iv$add_rule("report_date", function(value) {
       if (is.null(value) || is.na(value)) {
         "Report date is required"
       } else {
-        tryCatch({
-          date_val <- as.Date(value)
-          if (is.na(date_val)) {
+        tryCatch(
+          {
+            date_val <- as.Date(value)
+            if (is.na(date_val)) {
+              "Please enter a valid date"
+            } else if (date_val < as.Date("1900-01-01")) {
+              "Date cannot be before 1900"
+            } else if (date_val > as.Date("2100-12-31")) {
+              "Date cannot be after 2100"
+            }
+          },
+          error = function(e) {
             "Please enter a valid date"
-          } else if (date_val < as.Date("1900-01-01")) {
-            "Date cannot be before 1900"
-          } else if (date_val > as.Date("2100-12-31")) {
-            "Date cannot be after 2100"
           }
-        }, error = function(e) {
-          "Please enter a valid date"
-        })
+        )
       }
     })
-    
+
     # Validate Report Formats - at least one format must be selected
-    iv$add_rule("report_formats", function(value) {
-      if (is.null(value) || length(value) == 0) {
-        "Please select at least one report format"
-      }
-    })
-    
+    iv$add_rule("report_formats", sv_required())
+    # iv$add_rule("report_formats", function(value) {
+    #   if (is.null(value) || length(value) == 0) {
+    #     "Please select at least one report format"
+    #   }
+    # })
+
     # Enable validation
     iv$enable()
 
@@ -521,10 +466,10 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
 
     # Track editing and saved state for status line
     editing_active <- reactiveVal(FALSE)
-    author_editing_active <- reactiveVal(FALSE)  # Separate tracking for author editing
+    author_editing_active <- reactiveVal(FALSE) # Separate tracking for author editing
     details_saved <- reactiveVal(FALSE)
     last_edit_time <- reactiveVal(NULL)
-    last_author_edit_time <- reactiveVal(NULL)  # Separate edit time for author fields
+    last_author_edit_time <- reactiveVal(NULL) # Separate edit time for author fields
     status_changed <- reactiveVal(FALSE)
 
     # Track the previously selected tab
@@ -599,13 +544,13 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
 
     observeEvent(input$initiate_project, {
       logger::log_info("Save Project Details button clicked")
-      
+
       # Use shinyvalidate to check all validation rules
       if (!iv$is_valid()) {
         logger::log_warn("Form validation failed - validation errors will be shown automatically")
         return()
       }
-      
+
       logger::log_info("Form validation passed - all fields are valid")
 
       # Log the current state for debugging
@@ -619,16 +564,16 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
       #     id = ns("progress_container_1"),
       #     show = TRUE
       #   ))
-      
+
       # Show success message
       saved_icon <- as.character(phosphoricons::ph("cloud-check", weight = "light", class = "sidebar-icon"))
       saved_icon <- paste0("<span style = 'color: #3B6B35;'>", saved_icon, "</span>")
       saved_message <- paste0("<span style = 'color: #3B6B35;'>Details Saved</span>")
       shinyjs::html("details_status_icon", saved_icon)
       shinyjs::html("details_status_message", saved_message)
-      
 
-      
+
+
       # Hide after 4 seconds
       shinyjs::delay(4000, {
         shinyjs::html("details_status_message", ready_message)
@@ -639,11 +584,11 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
 
     # Load _brand.yml into the branding editor on initialization
     observe({
-      req(input$setup_nav)
-      logger::log_info("Current tab:", input$setup_nav)
+      req(input$setup_accordion)
+      logger::log_info(skip_formatter("Current accordion panel: {input$setup_accordion}"))
 
-      # The tab value is the text content of the tab, not the value attribute
-      if (grepl("Branding", input$setup_nav, ignore.case = TRUE)) {
+      # Check if the branding accordion panel is open
+      if ("branding" %in% input$setup_accordion) {
         tryCatch(
           {
             # Use file.path for cross-platform compatibility
@@ -764,7 +709,7 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
           save_icon <- as.character(phosphoricons::ph("floppy-disk", weight = "light", class = "sidebar-icon"))
           save_icon <- paste0("<span style = 'color: #4B7F52;'>", save_icon, "</span>")
           save_message <- paste0("<span style = 'color: #4B7F52;'>Autosaved</span>")
-          
+
           logger::log_info("Autosave observer triggered: editing_active is FALSE, showing autosave message")
 
           shinyjs::html("details_status_icon", save_icon)
@@ -906,8 +851,6 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
         updateCheckboxGroupInput(session, "report_formats", selected = character(0))
         updateSelectizeInput(session, "project_keywords", selected = character(0))
         updateDateInput(session, "report_date", value = Sys.Date())
-        
-
       },
       ignoreInit = TRUE
     )
@@ -986,7 +929,7 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
         shinyjs::html("author_status_message", ready_message)
         shinyjs::html("author_status_icon", ready_icon)
       })
-      author_editing_active(FALSE)  # Reset author editing state
+      author_editing_active(FALSE) # Reset author editing state
     })
 
     # Tab navigation is now handled by the main server logic

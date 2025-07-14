@@ -19,10 +19,30 @@ clean_data <- function(dirty_data) {
   # This prevents the app from crashing on startup if the file doesn't exist.
   tryCatch(
     {
-      dynamics_map <- readr::read_csv("dynamics_data.csv")
+      # Try multiple possible paths for dynamics_data.csv
+      possible_paths <- c(
+        "dynamics_data.csv",
+        "shinymgr/dynamics_data.csv",
+        file.path(getwd(), "dynamics_data.csv"),
+        file.path(getwd(), "shinymgr", "dynamics_data.csv")
+      )
+      
+      dynamics_map <- NULL
+      for (path in possible_paths) {
+        if (file.exists(path)) {
+          logger::log_info("Found dynamics_data.csv at: {path}")
+          dynamics_map <- readr::read_csv(path)
+          break
+        }
+      }
+      
+      if (is.null(dynamics_map)) {
+        logger::log_error("Could not find dynamics_data.csv in any of the expected locations")
+        stop("Could not load 'dynamics_data.csv'. Please ensure the file is in the app's root directory or shinymgr subdirectory.")
+      }
     },
     error = function(e) {
-      logger::log_error("Failed to load 'dynamics_data.csv'. Please ensure the file is in the app's root directory.")
+      logger::log_error("Failed to load 'dynamics_data.csv': {conditionMessage(e)}")
       stop("Could not load 'dynamics_data.csv'. App startup aborted.")
     }
   )

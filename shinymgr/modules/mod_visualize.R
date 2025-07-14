@@ -14,15 +14,12 @@
 mod_visualize_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    bslib::navset_card_pill(
-      id = ns("visualize_tabs"),
-      bslib::nav_panel(
-        "Overview",
-        icon = phosphoricons::ph("lighthouse"),
-        h1(
-          "Visualize Data",
-          style = "border-bottom: solid 1px #4A4A4A;"
-        ),
+    bslib::accordion(
+      id = ns("visualize_accordion"),
+      multiple = FALSE,
+      bslib::accordion_panel(
+        value = "overview",
+        title = tagList(phosphoricons::ph("lighthouse"), HTML("&nbsp;"), "Overview"),
         fluidRow(
           column(
             width = 8,
@@ -38,321 +35,88 @@ mod_visualize_ui <- function(id) {
               alt = "Visualize Data Image",
               style = "max-width: 100%; height: auto; margin-top: 20px; padding-left: 10%; padding-right: 10%;"
             )
-          ),
+          )
         )
       ),
-      bslib::nav_panel(
-        "Visualize Data",
-        icon = phosphoricons::ph("blueprint"),
-        style = "padding: 1em !important;",
+      bslib::accordion_panel(
+        value = "visualize_data",
+        title = tagList(phosphoricons::ph("blueprint"), HTML("&nbsp;"), "Visualize Data"),
+        p(
+          "This module allows you to visualize your project data. Select the type of visualization you want to perform and run the process. Use the button below to run the selected visualization."
+        ),
         fluidRow(
-          column(
-            width = 7,
-            create_info_card(
-              ns,
-              title = "Visualize Data", icon = "blueprint",
-              status = "visualize",
-              content = tagList(
-                p(
-                  "This module allows you to analyze your project data. Select the type of analysis you want to perform and run the analysis. Use the buttons below to run each analysis."
-                )
+          shinyWidgets::radioGroupButtons(
+            inputId = ns("visualization_type"),
+            label = "SELECT VISUALIZATION TYPE",
+            choices = list(
+              "Visualize Indicators" = "indicators",
+              "Visualize Alignment Data" = "alignment",
+              "Visualize Dynamics Data" = "dynamics",
+              "Visualize Cascade Data" = "cascade",
+              "Visualize All Data" = "full"
+            ),
+            selected = NULL,
+            direction = "horizontal",
+            justified = TRUE
+          )
+        ),
+        fluidRow(
+          class = "d-flex justify-content-center",
+          div(
+            id = ns("progress_visualization_container"),
+            class = "progress-container",
+            style = "width: 50%; visibility: hidden;",
+            tags$p("Running Visualization...", class = "progress-label", id = ns("progress_visualization_label")),
+            div(
+              class = "progress",
+              div(
+                class = "progress-bar progress-bar-striped progress-bar-animated",
+                role = "progressbar",
+                style = "width: 0%;",
+                `aria-valuenow` = "0",
+                `aria-valuemin` = "0",
+                `aria-valuemax` = "100",
+                id = ns("progress_visualization_bar_inner")
               )
-            )
-          ),
-          column(
-            width = 5,
-            create_actions_card(
-              ns,
-              action_buttons = list(
-                actionButton(
-                  ns("visualize_indicators"),
-                  label = tagList(
-                    phosphoricons::ph("gauge"),
-                    "Visualize Indicators"
-                  ),
-                  class = "action-button action-indicators",
-                  style = "width: 80%;"
-                ),
-                actionButton(
-                  ns("analyze_alignment"),
-                  label = tagList(
-                    phosphoricons::ph("flower-lotus"),
-                    "Analyze Alignment Data"
-                  ),
-                  class = "action-button action-alignment",
-                  style = "width: 80%;"
-                ),
-                actionButton(ns("analyze_dynamics"),
-                             label = tagList(
-                               phosphoricons::ph("pulse"),
-                               "Analyze Dynamics Data"
-                             ),
-                             class = "action-button action-dynamics",
-                             style = "width: 80%;"
-                ),
-                actionButton(ns("analyze_cascade"),
-                             label = tagList(
-                               phosphoricons::ph("waveform"),
-                               "Analyze Cascade Data"
-                             ),
-                             class = "action-button action-cascade",
-                             style = "width: 80%;"
-                ),
-                actionButton(
-                  ns("analyze_full"),
-                  label = tagList(
-                    phosphoricons::ph("calculator"),
-                    "Run Full Analysis"
-                  ),
-                  class = "action-button action-full btn-lrg w-90",
-                  style = "width: 80%;"
-                ) |>
-                  tooltip(
-                    "Run all analyses in sequence"
-                  )
-              ),
-              progress_bars = list(
-                shinyWidgets::progressBar(
-                  id = ns("progress_clean_data"),
-                  title = tags$span("Clean Data Progress", class = "pb-title", style = "text-align: left !important;"),
-                  value = 0,
-                  display_pct = FALSE,
-                  status = "success"
-                ),
-                shinyWidgets::progressBar(
-                  id = "visualize_indicators_progress",
-                  title = tags$span("Visualize Indicators Progress", class = "pb-title", style = "text-align: left !important;"),
-                  value = 0,
-                  display_pct = FALSE,
-                  status = "success"
-                ),
-                shinyWidgets::progressBar(
-                  id = "visualize_alignment_progress",
-                  title = tags$span("Visualize Alignment Progress", class = "pb-title", style = "text-align: left !important;"),
-                  value = 0,
-                  display_pct = FALSE,
-                  status = "success"
-                ),
-                shinyWidgets::progressBar(
-                  id = "visualize_dynamics_progress",
-                  value = 0,
-                  display_pct = FALSE,
-                  title = tags$span("Visualize Dynamics Progress", class = "pb-title", style = "text-align: left !important;"),
-                  status = "success"
-                ),
-                shinyWidgets::progressBar(
-                  id = "visualize_cascade_progress",
-                  value = 0,
-                  title = tags$span("Visualize Cascade Progress", class = "pb-title", style = "text-align: left !important;"),
-                  display_pct = FALSE,
-                  status = "success"
-                )
-              ),
-              title = "Actions",
-              icon = "person-simple-tai-chi"
             )
           )
         ),
         fluidRow(
-          column(
-            width = 6,
-            h1(
-              "Visualize Data",
-              style = "border-bottom: solid 1px #4A4A4A; margin-bottom: .25em;"
-            ),
-            p("This module allows you to visualize your project data. Select the type of visualization you want to perform and run the process Use the buttons below to run each visualization."),
-          ),
-          column(
-            width = 6,
-            bslib::card(
-              class = "infocard neumorphic",
-              style = "width: 100% !important; height: 100% !important;",
-              bslib::card_header(
-                style = "color: var(--bs-danger); box-shadow: inset 0 6px 12px #8e838066;",
-                class = "infocard",
-                tagList(
-                  ph("person-simple-tai-chi", weight = "bold"),
-                  "Actions"
-                )
-              ),
-              bslib::card_body(
-                class = "infocard",
-                style = "padding: 20px 0px 0px 0px !important;",
-                fluidRow(
-                  style = "height: 18%;",
-                  class = "action-row",
-                  column(
-                    width = 7,
-                    style = "text-align: center;",
-                    actionButton(
-                      ns("visualize_alignment"),
-                      label = tagList(
-                        phosphoricons::ph("flower-lotus"),
-                        "Visualize Alignment Data"
-                      ),
-                      style = "width: 90%; color: #4A4A4A; background: #d2bfa3 !important;",
-                      class = "btn-neumorphic"
-                    )
-                  ),
-                  column(
-                    width = 5,
-                    style = "text-align: center;",
-                    div(
-                      style = "width: 90%; text-align: center;",
-                      class = "justify-content-center",
-                      shinyWidgets::progressBar(
-                        id = "visualize_alignment_progress",
-                        title = tags$span("Visualize Alignment Progress", class = "pb-title", style = "text-align: left !important;"),
-                        value = 0,
-                        display_pct = FALSE,
-                        status = "success"
-                      )
-                    )
-                  )
-                ),
-                fluidRow(
-                  style = "height: 18%;",
-                  class = "action-row",
-                  column(
-                    width = 7,
-                    style = "text-align: center;",
-                    actionButton(
-                      ns("visualize_indicators"),
-                      label = tagList(
-                        phosphoricons::ph("gauge"),
-                        "Visualize Indicator Data"
-                      ),
-                      style = "width: 90%; color: #4A4A4A; background: #d2bfa3 !important;",
-                      class = "btn-neumorphic"
-                    )
-                  ),
-                  column(
-                    width = 5,
-                    style = "text-align: center;",
-                    div(
-                      style = "width: 90%; text-align: center;",
-                      class = "justify-content-center",
-                      shinyWidgets::progressBar(
-                        id = "visualize_indicators_progress",
-                        title = tags$span("Visualize Indicators Progress", class = "pb-title", style = "text-align: left !important;"),
-                        value = 0,
-                        display_pct = FALSE,
-                        status = "success"
-                      )
-                    )
-                  )
-                ),
-                fluidRow(
-                  style = "height: 18%;",
-                  class = "action-row",
-                  column(
-                    width = 7,
-                    style = "text-align: center;",
-                    actionButton(ns("visualize_dynamics"),
-                      label = tagList(
-                        phosphoricons::ph("pulse"),
-                        "Visualize Dynamics Data"
-                      ),
-                      style = "width: 90% !important;",
-                      class = "btn-neumorphic"
-                    )
-                  ),
-                  column(
-                    width = 5,
-                    style = "text-align: center;",
-                    div(
-                      style = "width: 90%; text-align: center;",
-                      class = "justify-content-center",
-                      shinyWidgets::progressBar(
-                        id = "visualize_dynamics_progress",
-                        value = 0,
-                        display_pct = FALSE,
-                        title = tags$span("Visualize Dynamics Progress", class = "pb-title", style = "text-align: left !important;"),
-                        status = "success"
-                      )
-                    )
-                  )
-                ),
-                fluidRow(
-                  style = "height: 18%;",
-                  class = "action-row",
-                  column(
-                    width = 7,
-                    style = "text-align: center;",
-                    actionButton(ns("visualize_cascade"),
-                      label = tagList(
-                        phosphoricons::ph("waveform"),
-                        "Visualize Cascade Data"
-                      ),
-                      style = "width: 90%;",
-                      class = "btn-neumorphic"
-                    )
-                  ),
-                  column(
-                    width = 5,
-                    div(
-                      style = "width: 90%; text-align: center;",
-                      class = "justify-content-center",
-                      shinyWidgets::progressBar(
-                        id = "visualize_cascade_progress",
-                        value = 0,
-                        title = tags$span("Visualize Cascade Progress", class = "pb-title", style = "text-align: left !important;"),
-                        display_pct = FALSE,
-                        status = "success"
-                      )
-                    )
-                  )
-                ),
-                fluidRow(
-                  style = "height: 18%;",
-                  class = "action-row",
-                  column(
-                    width = 7,
-                    style = "text-align: center;",
-                    actionButton(ns("visualize_full"),
-                      label = tagList(
-                        phosphoricons::ph("blueprint"),
-                        "Run Full Visualization"
-                      ),
-                      class = "btn-neumorphic run-analysis-button w-90",
-                      style = "width: 90%;",
-                    )
-                  ),
-                  column(
-                    width = 5,
-                    div(
-                      style = "width: 90%; text-align: center;",
-                      class = "justify-content-center",
-                      shinyWidgets::progressBar(
-                        id = "full_visualization_progress",
-                        title = tags$span("Full Visualization Progress", class = "pb-title", style = "text-align: left !important;"),
-                        value = 0,
-                        display_pct = FALSE,
-                        status = "success"
-                      )
-                    )
-                  )
-                )
-              )
-            )
+          class = "d-flex justify-content-center",
+          div(
+            style = "width: 50%; position: relative;",
+            uiOutput(ns("visualize_status_alert_ui"))
+          )
+        ),
+        fluidRow(
+          class = "d-flex justify-content-center align-items-center",
+          actionButton(
+            inputId = ns("run_visualization"),
+            label = "Run Visualization",
+            class = "btn-primary",
+            style = "width: 20%; margin: 0 auto; display: block;"
           )
         )
       ),
-      # Data View Tabs
-      bslib::nav_panel("Indicators",
-        value = "indicators_panel", icon = ph("gauge"), # uiOutput(ns("indicators_ui")
+      bslib::accordion_panel(
+        value = "indicators_panel",
+        title = tagList(phosphoricons::ph("gauge"), HTML("&nbsp;"), "Indicators"),
+        # Place your indicators UI here
       ),
-      bslib::nav_panel("Alignment",
-        value = "alignment_panel", icon = ph("flower-lotus"),
-        # plotOutput("alignment_plot",
-        #           width = "90%",      # Leave some margin
-        #           height = "50.625vw") # 90% <U+00D7> 56.25% = ~16:9
+      bslib::accordion_panel(
+        value = "alignment_panel",
+        title = tagList(phosphoricons::ph("flower-lotus"), HTML("&nbsp;"), "Alignment"),
+        # Place your alignment UI here
       ),
-      bslib::nav_panel("Dynamics",
-        value = "dynamics_panel", icon = ph("pulse")
+      bslib::accordion_panel(
+        value = "dynamics_panel",
+        title = tagList(phosphoricons::ph("pulse"), HTML("&nbsp;"), "Dynamics"),
+        # Place your dynamics UI here
       ),
-      bslib::nav_panel("Cascade Effects",
-        value = "cascade_panel", icon = ph("waveform")
+      bslib::accordion_panel(
+        value = "cascade_panel",
+        title = tagList(phosphoricons::ph("waveform"), HTML("&nbsp;"), "Cascade Effects"),
+        # Place your cascade effects UI here
       )
     )
   )
@@ -391,6 +155,15 @@ mod_visualize_server <- function(id, ns_workflow) {
 
       tryCatch(
         {
+          # 1. Update status message
+          rv_visualization$type <- "info"
+          rv_visualization$message <- "Visualization in progress..."
+          
+          # 2. Delay before showing progress bar
+          shinyjs::delay(100, {
+            shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
+          })
+
           # Update progress bar
           shinyWidgets::updateProgressBar(session = session, id = "visualize_alignment_progress", value = 50)
 
@@ -431,6 +204,15 @@ mod_visualize_server <- function(id, ns_workflow) {
 
       tryCatch(
         {
+          # 1. Update status message
+          rv_visualization$type <- "info"
+          rv_visualization$message <- "Visualization in progress..."
+          
+          # 2. Delay before showing progress bar
+          shinyjs::delay(100, {
+            shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
+          })
+
           # Update progress bar
           shinyWidgets::updateProgressBar(session = session, id = "visualize_indicators_progress", value = 50)
 
@@ -471,6 +253,15 @@ mod_visualize_server <- function(id, ns_workflow) {
 
       tryCatch(
         {
+          # 1. Update status message
+          rv_visualization$type <- "info"
+          rv_visualization$message <- "Visualization in progress..."
+          
+          # 2. Delay before showing progress bar
+          shinyjs::delay(100, {
+            shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
+          })
+
           # Update progress bar
           shinyWidgets::updateProgressBar(session = session, id = "visualize_dynamics_progress", value = 50)
 
@@ -511,6 +302,15 @@ mod_visualize_server <- function(id, ns_workflow) {
 
       tryCatch(
         {
+          # 1. Update status message
+          rv_visualization$type <- "info"
+          rv_visualization$message <- "Visualization in progress..."
+          
+          # 2. Delay before showing progress bar
+          shinyjs::delay(100, {
+            shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
+          })
+
           # Update progress bar
           shinyWidgets::updateProgressBar(session = session, id = "visualize_cascade_progress", value = 50)
 
@@ -551,6 +351,15 @@ mod_visualize_server <- function(id, ns_workflow) {
 
       tryCatch(
         {
+          # 1. Update status message
+          rv_visualization$type <- "info"
+          rv_visualization$message <- "Visualization in progress..."
+          
+          # 2. Delay before showing progress bar
+          shinyjs::delay(100, {
+            shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
+          })
+
           # Update progress bar
           shinyWidgets::updateProgressBar(session = session, id = "full_visualization_progress", value = 25)
 
@@ -626,6 +435,20 @@ mod_visualize_server <- function(id, ns_workflow) {
     observe({
       # Workflow icons are now updated centrally by the main server observer
       logger::log_info("Workflow icons initialization skipped - handled centrally")
+    })
+
+    output$visualize_status_alert_ui <- renderUI({
+      req(rv_visualization$type, rv_visualization$message)
+      icon_name <- switch(rv_visualization$type,
+                          "success" = "check-circle",
+                          "danger"  = "x-circle",
+                          "info"    = "info",
+                          "warning" = "warning-circle")
+      div(
+        class = paste0("alert alert-", rv_visualization$type, " mt-4 d-flex align-items-center"),
+        phosphoricons::ph(icon_name, weight = "fill", class = "alert-icon"),
+        tags$span(rv_visualization$message, class = "alert-message-text")
+      )
     })
 
     return(

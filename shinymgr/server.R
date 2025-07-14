@@ -270,7 +270,7 @@ server <- function(input, output, session) {
 
   output$workflow_step <- renderUI({
     step_text <- if (is.null(ns_workflow$workflow_step) || ns_workflow$workflow_step == "") {
-      "Project not initiated"
+      "Project not started"
     } else {
       ns_workflow$workflow_step
     }
@@ -401,11 +401,11 @@ server <- function(input, output, session) {
     if (input$main_navbar == "Project Setup") {
       # Update workflow step if not already done
       if (!workflow_updates$project_setup_initiated) {
-        logger::log_info("Updating Project Setup workflow to initiated")
+        logger::log_info("Updating Project Setup workflow to in progress")
         update_workflow_step(
           ns_workflow,
           stage = "Project Setup",
-          status = "initiated",
+          status = "in progress",
           session = session,
           ns = NULL
         )
@@ -419,11 +419,11 @@ server <- function(input, output, session) {
 
       # Update workflow steps if not already done
       if (!workflow_updates$load_data_initiated) {
-        logger::log_info("Updating Upload Data workflow to initiated")
+        logger::log_info("Updating Upload Data workflow to in progress")
         update_workflow_step(
           ns_workflow,
           stage = "Upload Data",
-          status = "initiated",
+          status = "in progress",
           session = session,
           ns = NULL
         )
@@ -586,5 +586,32 @@ server <- function(input, output, session) {
         logger::log_warn("JavaScript: Unknown warning type '{warning_data$type}' for element '{warning_data$element}'")
       }
     )
+  })
+
+  # --- Workflow Icon Outputs ---
+  output$workflow_setup_icon <- renderUI({
+    ph("plant", weight = "light", class = "sidebar-icon")
+  })
+  output$workflow_upload_icon <- renderUI({
+    is_complete <- !is.null(ns_workflow$upload_status) && ns_workflow$upload_status == "complete"
+    weight <- if (is_complete) "fill" else "light"
+    color <- if (is_complete) "#4CAF50" else "#d3d3d366"
+    ph("upload", weight = weight, class = "sidebar-icon", style = paste0("color: ", color, ";"))
+  })
+  output$workflow_clean_icon <- renderUI({
+    is_complete <- !is.null(ns_workflow$clean_status) && ns_workflow$clean_status == "complete" &&
+                   !is.null(ns_workflow$upload_status) && ns_workflow$upload_status == "complete"
+    weight <- if (is_complete) "fill" else "light"
+    color <- if (is_complete) "#4CAF50" else "#d3d3d366"
+    ph("broom", weight = weight, class = "sidebar-icon", style = paste0("color: ", color, ";"))
+  })
+  output$workflow_analyze_icon <- renderUI({
+    ph("calculator", weight = "light", class = "sidebar-icon")
+  })
+  output$workflow_visualize_icon <- renderUI({
+    ph("blueprint", weight = "light", class = "sidebar-icon")
+  })
+  output$workflow_generate_icon <- renderUI({
+    ph("newspaper-clipping", weight = "light", class = "sidebar-icon")
   })
 } # end of server function

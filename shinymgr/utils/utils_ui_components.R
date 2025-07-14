@@ -300,10 +300,7 @@ create_info_card <- function(ns, title, icon, status = "test", content, style = 
 create_flat_info_card <- function(ns, title, icon, content, style = NULL) {
   # Build the style string safely
   base_style <- "width: 100% !important;
-            height: 100% !important;
-            border-radius: 10px !important;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2) !important;
-    border: 1px solid #8e8380 !important;"
+            height: 100% !important;"
   
   final_style <- if (!is.null(style)) {
     paste0(base_style, " ", style)
@@ -314,18 +311,12 @@ create_flat_info_card <- function(ns, title, icon, content, style = NULL) {
   bslib::card(
     style = final_style,
     bslib::card_header(
-      style = "color: #F2ECD7; background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%); text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);",
-          class = "infocard",
           h1(
             title,
             phosphoricons::ph(icon, weight = "bold", class = "sidebar-icon")
-          )
+        )
         ),
     bslib::card_body(
-      class = "infocard",
-      style = "padding: 1.5em 2.5em 1.5em 2.5em !important;
-      border-radius: 0px 0px 10px 10px !important;
-      box-shadow: inset 0 4px 10px #8e838044 !important;",
       content
     )
   )

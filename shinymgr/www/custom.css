@@ -1,572 +1,528 @@
+/* Global */
 body {
-    /*background-color: #E8D8C3 !important;
-    background: linear-gradient(to top right, #DDB892 0%, #8B9DC3 100%);*/
-    background-image: url('blueprint_bg.png');
-    background-size: cover;
-background-position: center;
-background-repeat: no-repeat;
-}
-.workflow-icon i {
-  color: #8a8a8a;
-}
-.textarea {
-  font-family: var(--bs-font-code);
-  font-size: 14px;
-}
-/* Fix for date coercion warning */
-input[type=\"date\"]:not(:placeholder-shown):invalid {
-  border-color: inherit;
-}
-
-h1 {
-font-family: Lora !important;
-font-weight: bold;
-font-size: 2rem;
-color: #F2ECD7 !important;
-text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-/* Global infocard header styling */
-.card-header.infocard {
-color: #F2ECD7;
-background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%);
-text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.main-content{
-padding: 4em !important;
-background-color: #d2bfa344 !important;
-backdrop-filter: blur(18px) !important;
--webkit-backdrop-filter: blur(18px) !important;
-box-shadow: inset 0 8px 20px #8e838022 !important;
-}
-
-.progress-number {
-  display: none !important;
-}
-
-.progress-bar {
-width: 100% !important;
-height: 50px !important;
-background: rgba(75, 127, 82, 0.25);        /* semi-transparent white */
-backdrop-filter: blur(8px);                   /* frosted glass blur */
--webkit-backdrop-filter: blur(8px);           /* Safari support */
-border-radius: 12px;                           /* soft rounded corners */
-box-shadow: 0 2px 8px rgba(30, 30, 50, 0.15); /* subtle shadow for depth */
-border: 1px solid rgba(255, 255, 255, 0.35);  /* light border for glass edge */
-height: auto;
-color: linear-gradient(90deg, #4B7F5266 0%, #6A9F6C66 100%);                                  /* adjust as needed */
-transition: background 0.3s, box-shadow 0.3s; /* smooth transitions */
-}
-
-.custom-progressbar-style {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%);
-  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2) !important;
-    border: solid 1px rgba(140, 153, 167, 0.2);
-    width: 100% !important;
-    margin: 0;
-    height: auto;
-    border-radius: 8px;
-    padding: 0.1em;
-  }
-
-/* Force progress bar to fill container */
-.custom-progressbar-style .progress {
-width: 100% !important;
-height: 20px !important;
-background-color: rgba(75, 127, 82, 0.25) !important;
-border-radius: 10px !important;
-overflow: hidden !important;
-margin: 0 !important;
-}
-
-.custom-progressbar-style .progress-bar {
-background: linear-gradient(90deg, #4B7F52 0%, #6A9F6C 100%) !important;
-width: 100% !important;
-height: 20px !important;
-transition: width 0.3s ease !important;
-}
-
-.progress-bar-hidden {
-opacity: 0;
-transform: translateY(-10px);
-height: 0px;
-margin: 0px;
-padding: 0px;
-overflow: hidden;
-transition: all 0.3s ease;
-pointer-events: none;
-}
-
-.progress-bar-visible {
-opacity: 1;
-transform: translateY(0);
-height: 40px;
-margin: 10px;
-padding: 10px;
-transition: all 0.3s ease;
-pointer-events: auto;
-}
-
-.completion-message {
-opacity: 1;
-transform: translateY(0);
-height: 50px;
-margin: 10px;
-padding: 10px;
-transition: all 0.3s ease;
-pointer-events: auto;
-display: flex;
-align-items: center;
-justify-content: center;
-color: #4B7F52;
-background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%);
-box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2) !important;
-border: solid 1px rgba(140, 153, 167, 0.2);
-width: 90%;
-margin: 0 auto;
-border-radius: 8px;
-padding: 1em;
-font-family: 'Jersey 20' !important;
-font-size: 1em;
-text-transform: uppercase;
-}
-
-/* Force Jersey 20 font with higher specificity */
-.completion-message,
-.completion-message * {
-font-family: 'Jersey 20', var(--bs-code-font) !important;
-}
-
-.completion-message-hidden {
-opacity: 0;
-transform: translateY(-10px);
-height: 0;
-margin: 0;
-padding: 0;
-overflow: hidden;
-transition: all 0.3s ease;
-pointer-events: none;
-}
-
-.navbar {
-background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.3) 100%);
-box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1) !important;
-backdrop-filter: blur(15px);
--webkit-backdrop-filter: blur(15px);
-}
-
-.navbar-brand {
-color: #ffffff !important; /*#F2ECD7 !important;*/
-text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2) !important;
+  background-color: #EDEAE2;
+  color: #2A2A2A;
+  font-size: 1rem;
 }
 
 .main_content {
-padding: 4em !important;
-background-color: #d2bfa344 !important;
-backdrop-filter: blur(18px) !important;
--webkit-backdrop-filter: blur(18px) !important;
-box-shadow: inset 0 8px 20px #8e838022 !important;
+  padding: 1.5em 2em 1.5em 2em;
 }
 
-#main_navbar {
-background-color: transparent !important;
-box-shadow: none !important;
+/* Subtle type distinctions that work with your color scheme */
+.score-domain {
+  border-left: 4px solid var(--score-color);
+  border-bottom: 1px solid #C8BFA6; /* Your border color */
 }
 
-#main_navbar .nav-link {
-color: #ffffff !important; /*#F2ECD7 !important;*/
-text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2) !important;
-font-size: 1.15em !important;
-font-family: 'Fantasque Sans Mono' !important;
+.score-alignment {
+  border-top: 4px solid var(--score-color);
+  border-bottom: 1px solid #C8BFA6;
 }
 
-/* Global navset_card_pill (pills/tab navigation in cards) styling */
-.nav.card-header-pills {
-background-color: rgba(255, 255, 255, 0.2) !important;
-box-shadow: none !important;
-border-radius: 12px 12px 0px 0px;
-margin: 0px !important;
-padding: 0px !important;
-backdrop-filter: blur(15px);
--webkit-backdrop-filter: blur(15px);
+.score-cascade {
+  border-right: 4px solid var(--score-color);
+  border-bottom: 1px solid #C8BFA6;
 }
 
-.nav.card-header-pills {
-background-color: transparent !important;
+/* Overall score styling */
+.overall-score {
+  margin-top: 20px;
+  border: 2px solid #3B6B35; /* Your primary green */
+  background-color: #F0F5EF;
+  box-shadow: 0 2px 4px rgba(92, 90, 88, 0.1); /* Subtle shadow using your sidebar color */
 }
 
-.nav.card-header-pills .nav-link.active {
-background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%);
-box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1) !important;
-padding: 5px 10px !important;
+/* Ensure good contrast on your card backgrounds */
+.value-box {
+  background-color: #FDF5E6; /* Your input-bg for better contrast */
+  border: 1px solid #C8BFA6; /* Your border color */
+  font-family: var(--bs-code-font);
 }
 
-.nav.card-header-pills .nav-link.active:hover {
-background: linear-gradient(165deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
-padding: 5px 10px !important;
-box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.1) !important;
-transition: all 0.2s ease-in-out;
-}
-.nav.card-header-pills .nav-link.active:active {
-transform: translateY(-1px);
-padding: 5px 10px !important;
-transition: all 0.2s ease-in-out;
+/* Base alert styling */
+.alert {
+  position: relative;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
 }
 
-.nav.card-header-pills .nav-link {
-color: #ffffff !important;
-padding: 5px 10px !important;
-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+/* Success alert (sage green) */
+.alert-success {
+  color: #2A3A2A;
+  background-color: #E8F0E8;
+  border-color: #B8C8B8;
 }
-.nav.card-header-pills .nav-link:hover {
-color: #ffffff !important;
-text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-padding: 5px 10px !important;
+
+/* Info alert (soft blue-grey) */
+.alert-info {
+  color: #2A353A;
+  background-color: #E8EDEF;
+  border-color: #B8C5CA;
+}
+
+/* Warning alert (warm amber - keeping existing as it fits well) */
+.alert-warning {
+  color: #664d03;
+  background-color: #FDF4E6;
+  border-color: #E6B800;
+}
+
+/* Danger alert (muted terracotta) */
+.alert-danger {
+  color: #4A2A2A;
+  background-color: #F0E8E8;
+  border-color: #CC9999;
+}
+
+/* Dismissible alerts */
+.alert-dismissible {
+  padding-right: 3rem;
+}
+
+.alert-dismissible .btn-close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: 0.9375rem 1.25rem;
+}
+
+/* Fade animations */
+.fade {
+  transition: opacity 0.05s linear;
+}
+
+.fade:not(.show) {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.fade.show {
+  opacity: 1;
+}
+
+/* Accordion
+.accordion-header {
+  padding: 1em;
+  width: 100%;
+  text-align: left;
+  border: none;
+  outline: none;
+  transition: background 0.4s;
+  font-size: 2em;
+  border-radius: 4px 4px 0 0;
+  color: var(--bs-body-color);
+} */
+
+.accordion-button,
+.accordion-header {
+  background-color: #D4C8A8 !important; /* !important may be needed to override Bootstrap defaults */
+  color: var(--bs-body-color);
+  border: none;
+  transition: background 0.4s;
+}
+
+.accordion-button:hover,
+.accordion-button:focus,
+.accordion-header:hover,
+.accordion-header:focus {
+  background-color: #C8BFA6 !important; /* Slightly darker on hover */
+  color: var(--bs-body-color);
+}
+
+.accordion-button:not(.collapsed),
+.accordion-header:not(.collapsed) {
+  background-color: #B8A989 !important; /* Your existing accordion-active-bg */
+  color: var(--bs-body-color);
+}
+
+.accordion-title {
+  font-weight: 600;
+  font-size: 1.5em;
+}
+
+.accordion-body {
+  background-color: #EEE7D9; /* Use main body-bg for panel to create distinction */
+  /*transition: max-height 0.3s ease;*/
+  padding: 1.5em 2.5em 1.5em 2.5em;
+}
+
+.data-placeholder {
+  background-color: #FDF4E6; /* Light tint of your warning color */
+  border: 1px solid #E6B800;
+  border-left: 4px solid #E6B800; /* Accent border */
+  border-radius: 8px;
+  padding: 2rem;
+  margin: 1rem 0;
+  text-align: center;
+  color: #2A2A2A;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+.warning-card {
+  background-color: #FDF4E6; /* Very light amber */
+  border: 1px solid #E6B800; /* Golden amber border */
+  border-left: 4px solid #E6B800;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  color: #2A2A2A;
+}
+
+.warning-card .warning-icon,
+.data-placeholder .warning-icon {
+  color: #E6B800;
+  font-size: 2em;
+}
+
+/* Container for the progress bar and its label */
+.progress-container {
+  text-align: center;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Label for the progress bar */
+.progress-label {
+  font-family: 'Lato', sans-serif;
+  font-weight: 600;
+  color: var(--bs-fg); /* Uses your theme's default text color */
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+/* The background of the progress bar (the "track") */
+.progress {
+  background-color: #E2D8C3; /* Your 'card-bg' color for a soft track */
+  border-radius: 0.375rem; /* Matches your standard border-radius */
+  height: 1.5rem; /* A slightly taller bar for better visibility */
+  border: 1px solid #C8BFA6; /* Your 'border-color' */
+}
+
+/* The moving bar itself */
+.progress-bar {
+  background-color: var(--bs-primary) !important; /* Your primary green */
+  font-family: 'Lato', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #F5F1E8; /* Your 'sidebar-fg' for light text on dark bg */
+}
+
+/* Add stripes for visual interest */
+.progress-bar-striped {
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.2) 75%, transparent 75%, transparent);
+}
+
+/* Base styling for the alert card */
+/* In custom.css */
+
+/* Base styling for the alert card */
+
+/* Icon styling */
+.alert-icon {
+  font-size: 1.5rem;
+  margin-right: 0.75rem;
+  vertical-align: middle; /* Better alignment with text */
+}
+
+/* Message text styling */
+.alert-message-text {
+  font-family: var(--bs-code-font);
+  font-weight: 600;
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+.accordion-button,
+.accordion-header {
+  background-color: #D4C8A8 !important; /* !important may be needed to override Bootstrap defaults */
+  color: var(--bs-body-color);
+  border: none;
+  transition: background 0.4s;
+}
+
+.accordion-button:hover,
+.accordion-button:focus,
+.accordion-header:hover,
+.accordion-header:focus {
+  background-color: #C8BFA6 !important; /* Slightly darker on hover */
+  color: var(--bs-body-color);
+}
+
+.accordion-button:not(.collapsed),
+.accordion-header:not(.collapsed) {
+  background-color: #B8A989 !important; /* Your existing accordion-active-bg */
+  color: var(--bs-body-color);
+}
+
+.accordion-title {
+  font-weight: 600;
+  font-size: 1.5em;
+}
+
+.accordion-body {
+  background-color: #EEE7D9; /* Use main body-bg for panel to create distinction */
+  /*transition: max-height 0.3s ease;*/
+  padding: 1.5em 2.5em 1.5em 2.5em;
+}
+
+.data-placeholder {
+  background-color: #FDF4E6; /* Light tint of your warning color */
+  border: 1px solid #E6B800;
+  border-left: 4px solid #E6B800; /* Accent border */
+  border-radius: 8px;
+  padding: 2rem;
+  margin: 1rem 0;
+  text-align: center;
+  color: #2A2A2A;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+.warning-card {
+  background-color: #FDF4E6; /* Very light amber */
+  border: 1px solid #E6B800; /* Golden amber border */
+  border-left: 4px solid #E6B800;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  color: #2A2A2A;
+}
+
+.warning-card .warning-icon,
+.data-placeholder .warning-icon {
+  color: #E6B800;
+  font-size: 2em;
+}
+
+.status-fade {
+  opacity: 1;
+}
+.status-fade.out {
+  opacity: 0;
+}
+
+.control-label {
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--bs-secondary);
+  font-size: 0.9em;
+}
+
+.shiny-file-input-progress {
+  color: #3B6B3588;
+}
+
+/* Cards and Content */
+.card, .main-content, .bslib-card {
+  background-color: var(--bs-card-bg); /* Use card-bg */
+  border: 1px solid var(--bs-border-color); /* Use a general border-color */
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  padding: 1rem;
+}
+
+/* Sidebar */
+.sidebar {
+  background-color: #5C5A58; /* Use sidebar-bg (darker) */
+  color: #F5F1E8; /* Use sidebar-fg (creamy white) */
+  border-right: 1px solid #C8BFA6; /* Use border-color for a subtle line */
+}
+
+/* Navbar */
+.navbar {
+  background-color: #5C5A58;
+  color: #F5F1E8; /* Use navbar-fg */
+}
+
+.navbar .navbar-brand,
+.navbar-nav > li > a {
+  color: #F5F1E8; /* Use navbar-fg for links in navbar */
+  font-weight: 600;
+}
+
+.outlined-card {
+      border: 2px solid #dee2e6;
+      border-radius: 8px;
+      background: transparent;
+      position: relative;
+      margin-top: 10px;
+    }
+    
+    .outlined-card .card-header {
+      background: transparent;
+      border: none;
+      position: absolute;
+      top: -12px;
+      left: 20px;
+      padding: 0 10px;
+      background: white;
+      font-weight: 600;
+    }
+    
+    .outlined-card .card-body {
+      padding-top: 20px;
+    }
+
+/* Buttons */
+.btn {
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+}
+
+.btn-primary {
+  background-color: #3B6B35;  /*var(--bs-primary); Use primary color */
+  border-color: #3B6B35;
+  color: #F5F1E8; /* Light text for contrast on primary */
+}
+
+.btn-primary:hover {
+  background-color: var(--bs-primary); /* Darker shade of primary on hover */
+  border-color: var(--bs-primary);
+}
+
+.btn-secondary {
+  background-color: #CC6B4D; /* var(--bs-secondary); Use secondary color */
+  border-color: #CC6B4D;
+  color: #F5F1E8; /* Light text for contrast on secondary */
+}
+.btn-secondary:hover {
+  background-color: #B25F45; /* Darker shade of secondary on hover */
+  border-color: #B25F45;
+  color: #F5F1E8;
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+  font-family: var(--bs-heading-font); /* Use heading-font variable */
+  color: var(--bs-body-color); /* Use body-color for headings */
+  font-weight: 700;
+}
+
+code, pre {
+  background-color: var(--bs-card-bg); /* Harmonize with card background */
+  color: var(--bs-body-color); /* Ensure readability */
+  border-radius: 4px;
+}
+
+.progress-test (
+  color: #ffffff;
+  font-family: var(--bs-code-font);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+)
+
+/* Forms */
+.form-control, .selectize-input, .form-select {
+  background-color: var(--bs-input-bg); /* Use input-bg (light cream) */
+  border: 1px solid var(--bs-border-color); /* Consistent border */
+  border-radius: 6px;
+  color: var(--bs-body-color); /* Use body-color for input text */
+}
+
+/* Optional: Mild interactive shadow on hover */
+.card:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 
 .status-line {
-background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 100%);
-box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1) !important;
-padding: 0.5em;
-width: 100%;
-height: 100%;
-font-family: 'Share Tech Mono';
-  font-size: .9em;
-  padding: 0.5em;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 0.5em;
-  text-transform: uppercase;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(5px);
--webkit-backdrop-filter: blur(5px);
-border-radius: 8px;
-}
-
-.card {
-box-shadow: none !important;
-border: solid 1px #8e8380 !important;
-}
-
-.tab-pane {
-padding: 0px !important;
-margin: 0px !important;
-/*background-color: #f0e5d7 !important;*/
-border-radius: 0px 0px 12px 12px;
-box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
-
-
-
-.action-row-last {
-margin-bottom: 1em;
-}
-
-.action-row {
-background-color: #E8D8C3;
-padding-top: 12px;
-padding-bottom: 12px;
-box-shadow: 0 2px 3px rgba(0,0,0,0.1);
-box-shadow: inset 0 4px 10px #8e838044;
-align-items: evenly;
-justify-content: evenly;
-width: 100%;
-min-height: 4.5vh !important;
-border-top: solid 1px #8e8380;
-border-bottom: solid 1px #8e8380;
---bs-gutter-x: 0;
-}
-
-.action-button {
-color: #F2ECD7;
-font-weight: 600;
-border: none;
-border-radius: 6px;
-padding: 10px 18px;
-box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
-transition: all 0.2s ease-in-out;
-font-size: 1rem;
-letter-spacing: 0.5px;
-cursor: pointer;
-}
-.action-button:hover {
-transform: translateY(-1px);
-box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-.action-button:active {
-transform: translateY(0);
-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-/* Alignment Button */
-.action-alignment {
-background: linear-gradient(90deg, #A64B42 0%, #D17C45 100%);
-}
-
-/* Dynamics Button */
-.action-dynamics {
-background: linear-gradient(90deg, #3F5E78 0%, #5C7998 100%);
-}
-
-/* Cascade Button */
-.action-cascade {
-background: linear-gradient(90deg, #4B7F52 0%, #6A9F6C 100%);
-}
-
-/* Indicators Button */
-.action-indicators {
-background: linear-gradient(90deg, #BC7A5A 0%, #D17C45 100%);
-}
-
-/* Full Analysis Button */
-.action-full {
-background: linear-gradient(90deg, #990000 0%, #A64B42 100%);
-}
-
-.action-clean {
-background: linear-gradient(90deg, #E18B4E 0%, #D17C45 100%);
-}
-
-
-
-.project-info-text {
-  color: #D3D3D3;
-}
-.no-score {
-  color: #D3D3D3;
-  font-family: 'Jersey 20';
-}
-.has-score {
-  color: var(--bs-body-color);
-  font-family: 'Jersey 20';
-}
-.score-icon {
-  display: inline-block;
-}
-.no-score + .column .score-icon i {
-  color: #D3D3D3;
-}
-.has-score + .column .score-icon i {
-  color: var(--bs-body-color);
-}
-.project-info-date{
-  color: #D3D3D3;
-  text-align: right;
-  font-weight: 700;
-  font-family: var(--bs-font-code);
-  font-size: .75em;
-}
-.run-analysis-btn {
-  background: #3B6B35;
-  border-radius: 12px;
-  box-shadow: 4px 4px 8px #bdae95, -4px -4px 8px #ffffff;
-  transition: box-shadow 0.2s, transform 0.1s;
-}
-.run-analysis-btn:hover {
-  transform: scale(1.02);
-}
-.run-analysis-btn:active {
-  box-shadow: inset 2px 2px 4px #bdae95, inset -2px -2px 4px #ffffff;
-  transform: scale(0.98);
-}
-.card-row {
-  display: flex;
-  gap: 3em;
-  align-items: stretch;
-}
-.card.infocard {
-  /*flex: 1 1 0;
-  height: 100%;
-  background-color: #f0e5d7 !important;
-  border: solid 1px #4E342E !important;*/
-  box-shadow: 16px 16px 16px #d1c8b5 !important;
-}
-.card-header.infocard {
-  margin: 0px;
-  /*background-color: #d2bfa3;
-  border-bottom: solid 1px #4E342E;*/
-  font-family: var(--bs-font-heading) !important;
-  font-weight: bold;
-  font-size: 1.25em;
-  padding: 0.5em;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.5em;
-  box-shadow: 16px 16px 16px #d1c8b5;
-}
-.card-footer.infocard {
-  margin: 0px;
-  background-color: #d2bfa3;
-  border-top: solid 1px #4E342E;
-  font-family: var(--bs-font-main) !important;
-  font-size: 1em;
-  color: var(--bs-primary);
-  text-transform: uppercase;
-  font-family: 'Jersey 20' !important;
-  padding: 0.5em;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.5em;
-  box-shadow: 16px 16px 16px #d1c8b5;
-}
-.formrow{
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  font-family: var(--bs-font-code) !important;
-  font-size: 0.9em;
-  font-weight: bold;
-  text-transform: uppercase;
-  padding: 1em;
+  font-size: 0.95rem;
+  color: var(--bs-body-color); /* Consistent with body text */
+  background-color: var(--bs-body-bg); /* Consistent with body bg */
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.05);
+  padding: 0.5em 0.75em;
+  border-radius: 6px;
   margin-bottom: 1.5em;
-  margin-left: auto;
-  margin-right: auto;
-  background-color: rgba(140, 153, 167, 0.1);
-  border: solid 1px rgba(140, 153, 167, 0.2);
-  width: 100%;
-  border-radius: 12px;
-  box-shadow: 2px 2px 4px rgba(140, 153, 167, 0.1);
-}
-.pb-title {
-    color: var(--bs-fg) !important;
-    font-size: 0.6em !important;
-    font-weight: bold;
-    text-transform: uppercase;
-    text-align: left !important;
-    font-family: 'Jersey 20', var(--bs-code-font) !important;
+  text-transform: uppercase;
+  font-family: var(--bs-code-font); /* Use body font for consistency */
 }
 
-.title-style {
-color: #ffffff;
-font-family: var(--bs-code-font);
-font-size: 0.75em;
-font-weight: light;
-text-transform: uppercase;
-text-align: center;
-text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
+.status-line .ph {
+  font-size: 1.2rem;
+  vertical-align: middle;
 }
 
-/* Progress bar title styling */
-.progress-bar .pb-title {
-    color: #F2ECD7 !important;
-    font-size: 0.8em !important;
-    font-weight: bold;
-    text-transform: uppercase;
-    text-align: left !important;
-    font-family: 'Jersey 20', var(--bs-code-font) !important;
-    margin-bottom: 5px;
-}
-.card-body.infocard {
-  overflow-x: hidden;
-  background-color: #f0e5d7 !important;
-  flex-direction: column;
-  justify-content: space-evenly;
-}
-.card.status-card {
-  padding: 0px;
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 4px 4px 8px #d1c8b5;
-  border: solid 0.5px #4E342E;
-  margin: 0px;
-}
-.card-body.status-card {
-  padding: 0em;
-}
-/* Style the accordion panel content */
-.accordion-body {
-  padding: 1.5em;
-  background-color: #f0e5d7;
-  color: var(--bs-fg);
-  font-size: 1.1em;
+/* Sidebar "Status", "Scores", "Tools" sections (if they are .d-flex.infocard) */
+.d-flex.infocard {
+  background-color: var(--bs-sidebar-bg); /* Consistent with sidebar background */
+  color: var(--bs-sidebar-fg); /* Consistent with sidebar foreground */
+  padding: 0.5em 0.75em;
+  margin: 0.5em auto;
+  width: 85%;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
 }
 
-.neumorphic {
-background: transparent !important;
-border-radius: 12px;
-box-shadow:  8px 8px 15px #00000044 !important;
+/* General action button styling */
+.action-button {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-.neumorphic .card {
-background: transparent !important;
-box-shadow: none !important;
-border: none !important;
+/* Specific styling for the 'Dark Mode', 'Overview Mode', 'Data Mode', 'Save Snapshot' buttons in sidebar */
+.sidebar .action-button {
+  background-color: transparent;
+  color: var(--bs-navbar-fg); /* Default: light text on dark sidebar */
+  border: 1px solid var(--bs-secondary); /* A slightly darker shade of sidebar-bg for definition */
+  padding: 0.5em 1em;
+  margin: 0.5em 0;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-.btn-neumorphic {
-border-radius: 6px;
-box-shadow:  4px 4px 8px #d1c8b5;
-color: #4A4A4A;
-background: #d2bfa3 !important;
+.sidebar .action-button:hover {
+  background-color: var(--bs-secondary); /* Hover: terracotta accent */
+  color: var(--bs-navbar-fg); /* Hover: light text */
+  border-color: var(--bs-secondary);
 }
 
-.glass {
-background: rgba(255, 255, 255, 0.6) !important;
-border-radius: 16px;
-box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-backdrop-filter: blur(5px);
--webkit-backdrop-filter: blur(5px);
-border: 1px solid rgba(255, 255, 255, 0.7) !important;
-}
-.sidebar-icon {
-text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
-filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.2));
-font-size: 1.1em;
+/* Active state for these sidebar buttons */
+.sidebar .action-button.active {
+  background-color: var(--bs-primary); /* Active: forest green accent */
+  color: var(--bs-navbar-fg); /* Active: light text */
+  border-color: var(--bs-primary);
 }
 
-.indicator-icon {
-text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.3);
-filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.3));
-font-size: 1.2em;
-color: #4A4A4A;
+/* Icons within sidebar buttons */
+.sidebar .action-button .ph {
+  color: var(--bs-sidebar-fg); /* Default icon color */
 }
 
-font-size: 2rem;
-/* Light mode color */
-:root {
---monochrome-icon-color: #6c757d;
+.sidebar .action-button:hover .ph,
+.sidebar .action-button.active .ph {
+  color: var(--bs-navbar-fg); /* Light icon color on hover/active */
 }
 
-/* Dark mode color */
-[data-bs-theme='dark'] {
---monochrome-icon-color: #adb5bd;  /* Lighter gray for dark mode */
+/* File input buttons (e.g., "Browse") */
+.file-input .btn {
+    background-color: var(--bs-secondary); /* Uses terracotta for "Browse" button */
+    color: var(--bs-navbar-fg); /* Light text on terracotta */
+    border-color: var(--bs-secondary);
+}
+.file-input .btn:hover {
+    background-color: #B25F45; /* Darker terracotta on hover */
+    border-color: #B25F45;
 }
 
-.monochrome-toggle .pretty .state i {
-color: var(--monochrome-icon-color) !important;
-font-size: 1.5em !important;
-position: relative !important;
-top: 0.75em !important;
-display: inline-block !important;
-left: 50% !important;
-transform: translateX(-50%) !important;
+/* Placeholders/disabled text in form inputs */
+.form-control::placeholder {
+  color: #8C8A82; /* Muted grey for placeholders */
 }
 
-.monochrome-toggle .pretty input:checked ~ .state i,
-.monochrome-toggle .pretty input:not(:checked) ~ .state i {
-color: var(--monochrome-icon-color) !important;
-font-size: 1.25em !important;
-position: relative !important;
-top: 0.5em !important;
-left: 50% !important;
-transform: translateX(-50%) !important;
+.form-control:disabled {
+  background-color: #EFECE5; /* Slightly darker than input-bg */
+  color: #8C8A82;
 }
 
-/* Remove all borders and backgrounds */
-.monochrome-toggle .pretty.p-toggle .state label:after,
-.monochrome-toggle .pretty input:checked ~ .state label:after {
-background: none !important;
-border: none !important;
-box-shadow: none !important;
-}
-
-/* Remove focus outline */
-.monochrome-toggle .pretty input:focus ~ .state label:after {
-outline: none !important;
-box-shadow: none !important;
+/* Workflow icons (top of sidebar) */
+.sidebar .d-flex.align-items-center.justify-content-evenly.gap-2 .sidebar-icon {
+    font-size: 1.5em;
+    transition: color 0.3s ease;
+    color: var(--bs-sidebar-fg); /* Ensure workflow icons are light on dark sidebar */
 }
