@@ -101,22 +101,22 @@ mod_visualize_ui <- function(id) {
       bslib::accordion_panel(
         value = "indicators_panel",
         title = tagList(phosphoricons::ph("gauge"), HTML("&nbsp;"), "Indicators"),
-        # Place your indicators UI here
+        uiOutput(ns("indicators_ui"))
       ),
       bslib::accordion_panel(
         value = "alignment_panel",
         title = tagList(phosphoricons::ph("flower-lotus"), HTML("&nbsp;"), "Alignment"),
-        # Place your alignment UI here
+        uiOutput(ns("alignment_ui"))
       ),
       bslib::accordion_panel(
         value = "dynamics_panel",
         title = tagList(phosphoricons::ph("pulse"), HTML("&nbsp;"), "Dynamics"),
-        # Place your dynamics UI here
+        uiOutput(ns("dynamics_ui"))
       ),
       bslib::accordion_panel(
         value = "cascade_panel",
         title = tagList(phosphoricons::ph("waveform"), HTML("&nbsp;"), "Cascade Effects"),
-        # Place your cascade effects UI here
+        uiOutput(ns("cascade_ui"))
       )
     )
   )
@@ -137,7 +137,9 @@ mod_visualize_server <- function(id, ns_workflow) {
       indicators_visualized = FALSE,
       dynamics_visualized = FALSE,
       cascade_visualized = FALSE,
-      full_visualized = FALSE
+      full_visualized = FALSE,
+      type = "info",
+      message = "Ready to visualize. Please select a visualization type and click 'Run Visualization'."
     )
 
     # --- Observe per-metric workflow state for Alignment Clean Data completion and update status/icon ---
@@ -149,51 +151,53 @@ mod_visualize_server <- function(id, ns_workflow) {
       }
     })
 
+    # Helper to update the single progress bar
+    update_progress <- function(value, text = NULL) {
+      shinyjs::runjs(sprintf(
+        "document.getElementById('%s').style.width = '%d%%';",
+        ns("progress_visualization_bar_inner"), value
+      ))
+      if (!is.null(text)) {
+        shinyjs::html(ns("progress_visualization_label"), text)
+      }
+    }
+
     # Visualize Alignment Data
     observeEvent(input$visualize_alignment, {
       logger::log_info("Visualize Alignment button clicked")
-
       tryCatch(
         {
-          # 1. Update status message
           rv_visualization$type <- "info"
           rv_visualization$message <- "Visualization in progress..."
-          
-          # 2. Delay before showing progress bar
           shinyjs::delay(100, {
             shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
           })
-
-          # Update progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_alignment_progress", value = 50)
-
-          # Simulate visualization process
-          Sys.sleep(1) # Remove this in actual implementation
-
-          # Mark as completed
+          update_progress(30, "Preparing alignment visualization...")
+          Sys.sleep(0.5)
+          update_progress(70, "Generating alignment plots...")
+          Sys.sleep(0.5)
           rv_visualization$alignment_visualized <- TRUE
-
-          # Update workflow step for alignment visualization completion
           update_workflow_step(
             ns_workflow,
             stage = "Visualize Findings",
             status = "complete",
             session = session
           )
-
-          # Update alignment workflow icons
           update_alignment_workflow_icons(ns_workflow, session, ns)
-
-          # Complete progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_alignment_progress", value = 100)
-
+          update_main_data_workflow_icons("Visualize Findings", "complete", session, ns, ns_workflow)
+          update_progress(100, "Finalizing...")
           logger::log_info("Alignment visualization completed")
-          showNotification("Alignment visualization completed successfully!", type = "success")
+          rv_visualization$type <- "success"
+          rv_visualization$message <- "Alignment visualization completed successfully!"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         },
         error = function(e) {
           logger::log_error("Error in alignment visualization: {conditionMessage(e)}")
-          showNotification("Error in alignment visualization", type = "error")
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_alignment_progress", value = 0)
+          rv_visualization$type <- "danger"
+          rv_visualization$message <- "Error in alignment visualization"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         }
       )
     })
@@ -201,48 +205,38 @@ mod_visualize_server <- function(id, ns_workflow) {
     # Visualize Indicators Data
     observeEvent(input$visualize_indicators, {
       logger::log_info("Visualize Indicators button clicked")
-
       tryCatch(
         {
-          # 1. Update status message
           rv_visualization$type <- "info"
           rv_visualization$message <- "Visualization in progress..."
-          
-          # 2. Delay before showing progress bar
           shinyjs::delay(100, {
             shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
           })
-
-          # Update progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_indicators_progress", value = 50)
-
-          # Simulate visualization process
-          Sys.sleep(1) # Remove this in actual implementation
-
-          # Mark as completed
+          update_progress(30, "Preparing indicators visualization...")
+          Sys.sleep(0.5)
+          update_progress(70, "Generating indicators plots...")
+          Sys.sleep(0.5)
           rv_visualization$indicators_visualized <- TRUE
-
-          # Update workflow step for indicators visualization completion
           update_workflow_step(
             ns_workflow,
             stage = "Visualize Findings",
             status = "complete",
             session = session
           )
-
-          # Update main data workflow icons for indicators visualization completion
           update_main_data_workflow_icons("Visualize Findings", "complete", session, ns, ns_workflow)
-
-          # Complete progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_indicators_progress", value = 100)
-
+          update_progress(100, "Finalizing...")
           logger::log_info("Indicators visualization completed")
-          showNotification("Indicators visualization completed successfully!", type = "success")
+          rv_visualization$type <- "success"
+          rv_visualization$message <- "Indicators visualization completed successfully!"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         },
         error = function(e) {
           logger::log_error("Error in indicators visualization: {conditionMessage(e)}")
-          showNotification("Error in indicators visualization", type = "error")
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_indicators_progress", value = 0)
+          rv_visualization$type <- "danger"
+          rv_visualization$message <- "Error in indicators visualization"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         }
       )
     })
@@ -250,48 +244,38 @@ mod_visualize_server <- function(id, ns_workflow) {
     # Visualize Dynamics Data
     observeEvent(input$visualize_dynamics, {
       logger::log_info("Visualize Dynamics button clicked")
-
       tryCatch(
         {
-          # 1. Update status message
           rv_visualization$type <- "info"
           rv_visualization$message <- "Visualization in progress..."
-          
-          # 2. Delay before showing progress bar
           shinyjs::delay(100, {
             shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
           })
-
-          # Update progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_dynamics_progress", value = 50)
-
-          # Simulate visualization process
-          Sys.sleep(1) # Remove this in actual implementation
-
-          # Mark as completed
+          update_progress(30, "Preparing dynamics visualization...")
+          Sys.sleep(0.5)
+          update_progress(70, "Generating dynamics plots...")
+          Sys.sleep(0.5)
           rv_visualization$dynamics_visualized <- TRUE
-
-          # Update workflow step for dynamics visualization completion
           update_workflow_step(
             ns_workflow,
             stage = "Visualize Findings",
             status = "complete",
             session = session
           )
-
-          # Update main data workflow icons for dynamics visualization completion
           update_main_data_workflow_icons("Visualize Findings", "complete", session, ns, ns_workflow)
-
-          # Complete progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_dynamics_progress", value = 100)
-
+          update_progress(100, "Finalizing...")
           logger::log_info("Dynamics visualization completed")
-          showNotification("Dynamics visualization completed successfully!", type = "success")
+          rv_visualization$type <- "success"
+          rv_visualization$message <- "Dynamics visualization completed successfully!"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         },
         error = function(e) {
           logger::log_error("Error in dynamics visualization: {conditionMessage(e)}")
-          showNotification("Error in dynamics visualization", type = "error")
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_dynamics_progress", value = 0)
+          rv_visualization$type <- "danger"
+          rv_visualization$message <- "Error in dynamics visualization"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         }
       )
     })
@@ -299,48 +283,38 @@ mod_visualize_server <- function(id, ns_workflow) {
     # Visualize Cascade Data
     observeEvent(input$visualize_cascade, {
       logger::log_info("Visualize Cascade button clicked")
-
       tryCatch(
         {
-          # 1. Update status message
           rv_visualization$type <- "info"
           rv_visualization$message <- "Visualization in progress..."
-          
-          # 2. Delay before showing progress bar
           shinyjs::delay(100, {
             shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
           })
-
-          # Update progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_cascade_progress", value = 50)
-
-          # Simulate visualization process
-          Sys.sleep(1) # Remove this in actual implementation
-
-          # Mark as completed
+          update_progress(30, "Preparing cascade visualization...")
+          Sys.sleep(0.5)
+          update_progress(70, "Generating cascade plots...")
+          Sys.sleep(0.5)
           rv_visualization$cascade_visualized <- TRUE
-
-          # Update workflow step for cascade visualization completion
           update_workflow_step(
             ns_workflow,
             stage = "Visualize Findings",
             status = "complete",
             session = session
           )
-
-          # Update main data workflow icons for cascade visualization completion
           update_main_data_workflow_icons("Visualize Findings", "complete", session, ns, ns_workflow)
-
-          # Complete progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_cascade_progress", value = 100)
-
+          update_progress(100, "Finalizing...")
           logger::log_info("Cascade visualization completed")
-          showNotification("Cascade visualization completed successfully!", type = "success")
+          rv_visualization$type <- "success"
+          rv_visualization$message <- "Cascade visualization completed successfully!"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         },
         error = function(e) {
           logger::log_error("Error in cascade visualization: {conditionMessage(e)}")
-          showNotification("Error in cascade visualization", type = "error")
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_cascade_progress", value = 0)
+          rv_visualization$type <- "danger"
+          rv_visualization$message <- "Error in cascade visualization"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         }
       )
     })
@@ -348,36 +322,29 @@ mod_visualize_server <- function(id, ns_workflow) {
     # Run Full Visualization
     observeEvent(input$visualize_full, {
       logger::log_info("Run Full Visualization button clicked")
-
       tryCatch(
         {
-          # 1. Update status message
           rv_visualization$type <- "info"
           rv_visualization$message <- "Visualization in progress..."
-          
-          # 2. Delay before showing progress bar
           shinyjs::delay(100, {
             shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'visible';", ns("progress_visualization_container")))
           })
-
-          # Update progress bar
-          shinyWidgets::updateProgressBar(session = session, id = "full_visualization_progress", value = 25)
-
-          # Simulate full visualization process
-          Sys.sleep(0.5)
-          shinyWidgets::updateProgressBar(session = session, id = "full_visualization_progress", value = 50)
-          Sys.sleep(0.5)
-          shinyWidgets::updateProgressBar(session = session, id = "full_visualization_progress", value = 75)
-          Sys.sleep(0.5)
-
-          # Mark all as completed
-          rv_visualization$alignment_visualized <- TRUE
+          update_progress(10, "Preparing full visualization...")
+          Sys.sleep(0.3)
+          update_progress(30, "Generating indicators plots...")
+          Sys.sleep(0.3)
           rv_visualization$indicators_visualized <- TRUE
+          update_progress(50, "Generating alignment plots...")
+          Sys.sleep(0.3)
+          rv_visualization$alignment_visualized <- TRUE
+          update_progress(70, "Generating dynamics plots...")
+          Sys.sleep(0.3)
           rv_visualization$dynamics_visualized <- TRUE
+          update_progress(90, "Generating cascade plots...")
+          Sys.sleep(0.3)
           rv_visualization$cascade_visualized <- TRUE
+          update_progress(100, "Finalizing...")
           rv_visualization$full_visualized <- TRUE
-
-          # Update workflow steps for full visualization completion
           update_workflow_step(
             ns_workflow,
             stage = "Visualize Findings",
@@ -385,8 +352,6 @@ mod_visualize_server <- function(id, ns_workflow) {
             metric = "alignment",
             session = session
           )
-
-          # Update workflow step for main data visualization completion
           update_workflow_step(
             ns_workflow,
             stage = "Visualize Findings",
@@ -408,25 +373,20 @@ mod_visualize_server <- function(id, ns_workflow) {
             metric = "cascade",
             session = session
           )
-
-          # Update all workflow icons
           update_alignment_workflow_icons(ns_workflow, session, ns)
           update_main_data_workflow_icons("Visualize Findings", "complete", session, ns, ns_workflow)
-
-          # Complete progress bars
-          shinyWidgets::updateProgressBar(session = session, id = "full_visualization_progress", value = 100)
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_alignment_progress", value = 100)
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_indicators_progress", value = 100)
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_dynamics_progress", value = 100)
-          shinyWidgets::updateProgressBar(session = session, id = "visualize_cascade_progress", value = 100)
-
           logger::log_info("Full visualization completed")
-          showNotification("Full visualization completed successfully!", type = "success")
+          rv_visualization$type <- "success"
+          rv_visualization$message <- "Full visualization completed successfully!"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         },
         error = function(e) {
           logger::log_error("Error in full visualization: {conditionMessage(e)}")
-          showNotification("Error in full visualization", type = "error")
-          shinyWidgets::updateProgressBar(session = session, id = "full_visualization_progress", value = 0)
+          rv_visualization$type <- "danger"
+          rv_visualization$message <- "Error in full visualization"
+          shinyjs::runjs(sprintf("document.getElementById('%s').style.visibility = 'hidden';", ns("progress_visualization_container")))
+          update_progress(0)
         }
       )
     })
@@ -435,6 +395,14 @@ mod_visualize_server <- function(id, ns_workflow) {
     observe({
       # Workflow icons are now updated centrally by the main server observer
       logger::log_info("Workflow icons initialization skipped - handled centrally")
+    })
+
+    # Ensure status alert is always visible with initial info message
+    observe({
+      if (is.null(rv_visualization$type) || is.null(rv_visualization$message)) {
+        rv_visualization$type <- "info"
+        rv_visualization$message <- "Ready to visualize. Please select a visualization type and click 'Run Visualization'."
+      }
     })
 
     output$visualize_status_alert_ui <- renderUI({
@@ -449,6 +417,90 @@ mod_visualize_server <- function(id, ns_workflow) {
         phosphoricons::ph(icon_name, weight = "fill", class = "alert-icon"),
         tags$span(rv_visualization$message, class = "alert-message-text")
       )
+    })
+
+    # Indicators UI
+    output$indicators_ui <- renderUI({
+      if (!isTRUE(rv_visualization$indicators_visualized)) {
+        return(
+          tags$div(
+            class = "data-placeholder",
+            tags$div(
+              class = "d-flex align-items-center justify-content-center gap-2",
+              phosphoricons::ph("warning-circle", weight = "bold", class = "warning-icon"),
+              tags$div(
+                tags$strong("No Indicators Visualization Results"),
+                tags$br(),
+                "Please generate the indicators plots first to view results."
+              )
+            )
+          )
+        )
+      }
+      # Place your indicators UI here
+    })
+
+    # Alignment UI
+    output$alignment_ui <- renderUI({
+      if (!isTRUE(rv_visualization$alignment_visualized)) {
+        return(
+          tags$div(
+            class = "data-placeholder",
+            tags$div(
+              class = "d-flex align-items-center justify-content-center gap-2",
+              phosphoricons::ph("warning-circle", weight = "bold", class = "warning-icon"),
+              tags$div(
+                tags$strong("No Alignment Visualization Results"),
+                tags$br(),
+                "Please generate the alignment plots first to view results."
+              )
+            )
+          )
+        )
+      }
+      # Place your alignment UI here
+    })
+
+    # Dynamics UI
+    output$dynamics_ui <- renderUI({
+      if (!isTRUE(rv_visualization$dynamics_visualized)) {
+        return(
+          tags$div(
+            class = "data-placeholder",
+            tags$div(
+              class = "d-flex align-items-center justify-content-center gap-2",
+              phosphoricons::ph("warning-circle", weight = "bold", class = "warning-icon"),
+              tags$div(
+                tags$strong("No Dynamics Visualization Results"),
+                tags$br(),
+                "Please generate the dynamics plots first to view results."
+              )
+            )
+          )
+        )
+      }
+      # Place your dynamics UI here
+    })
+
+    # Cascade UI
+    output$cascade_ui <- renderUI({
+      if (!isTRUE(rv_visualization$cascade_visualized)) {
+        return(
+          tags$div(
+            class = "data-placeholder",
+            tags$div(
+              class = "d-flex align-items-center justify-content-center gap-2",
+              phosphoricons::ph("warning-circle", weight = "bold", class = "warning-icon"),
+              tags$div(
+                tags$strong("No Cascade Visualization Results"),
+                tags$br(),
+                "Please generate the cascade plots first to view results."
+              )
+            )
+          )
+        )
+      }
+      # Place your cascade effects UI here
     })
 
     return(

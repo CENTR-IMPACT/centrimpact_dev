@@ -1211,6 +1211,22 @@ mod_analyze_server <- function(id, ns_workflow) {
 
       # Render alignment analysis UI
       output$alignment_ui <- renderUI({
+        if (!isTRUE(rv_analysis$alignment_analyzed)) {
+          return(
+            tags$div(
+              class = "data-placeholder",
+              tags$div(
+                class = "d-flex align-items-center justify-content-center gap-2",
+                ph("warning-circle", weight = "bold", class = "warning-icon"),
+                tags$div(
+                  tags$strong("No Alignment Analysis Results"),
+                  tags$br(),
+                  "Please run the alignment analysis first to view results."
+                )
+              )
+            )
+          )
+        }
         req(rv_analysis$alignment_analyzed, rv_analysis$alignment_score)
 
         tagList(
@@ -1347,6 +1363,22 @@ mod_analyze_server <- function(id, ns_workflow) {
 
       # Render dynamics analysis UI
       output$dynamics_ui <- renderUI({
+        if (!isTRUE(rv_analysis$dynamics_analyzed)) {
+          return(
+            tags$div(
+              class = "data-placeholder",
+              tags$div(
+                class = "d-flex align-items-center justify-content-center gap-2",
+                ph("warning-circle", weight = "bold", class = "warning-icon"),
+                tags$div(
+                  tags$strong("No Dynamics Analysis Results"),
+                  tags$br(),
+                  "Please run the dynamics analysis first to view results."
+                )
+              )
+            )
+          )
+        }
         req(rv_analysis$dynamics_analyzed, rv_analysis$dynamics_results)
 
         tagList(
@@ -1450,6 +1482,22 @@ mod_analyze_server <- function(id, ns_workflow) {
 
       # Render cascade analysis UI
       output$cascade_ui <- renderUI({
+        if (!isTRUE(rv_analysis$cascade_analyzed)) {
+          return(
+            tags$div(
+              class = "data-placeholder",
+              tags$div(
+                class = "d-flex align-items-center justify-content-center gap-2",
+                ph("warning-circle", weight = "bold", class = "warning-icon"),
+                tags$div(
+                  tags$strong("No Cascade Analysis Results"),
+                  tags$br(),
+                  "Please run the cascade analysis first to view results."
+                )
+              )
+            )
+          )
+        }
         req(rv_analysis$cascade_analyzed, rv_analysis$cascade_results)
 
         # Helper to calculate means safely

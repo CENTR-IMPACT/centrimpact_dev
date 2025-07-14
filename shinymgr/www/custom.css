@@ -330,7 +330,7 @@ body {
 .sidebar {
   background-color: #5C5A58; /* Use sidebar-bg (darker) */
   color: #F5F1E8; /* Use sidebar-fg (creamy white) */
-  border-right: 1px solid #C8BFA6; /* Use border-color for a subtle line */
+  border-right: 2px solid #C8BFA6; /* Use border-color for a subtle line */
 }
 
 /* Navbar */
