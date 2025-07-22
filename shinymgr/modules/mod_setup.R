@@ -618,12 +618,13 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
       }
     })
 
-    # Update editing state for project title
+    # Update editing state for project title and set ns_project$project_title
     observeEvent(input$project_title,
       {
         if (!is.null(input$project_title) && nchar(trimws(input$project_title)) > 0) {
           trigger_editing()
         }
+        ns_project$project_title <- input$project_title
       },
       ignoreInit = TRUE
     )
@@ -948,9 +949,22 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
     })
 
     # Reset details_saved to FALSE when any input changes (except the save button)
+    # Also set ns_project$project_report_date reactively
     observeEvent(list(input$project_title, input$project_description, input$report_formats, input$project_keywords, input$report_date),
       {
         details_saved(FALSE)
+        ns_project$project_report_date <- tryCatch(
+          {
+            if (!is.null(input$report_date) && !is.na(input$report_date)) {
+              as.character(as.Date(input$report_date))
+            } else {
+              ""
+            }
+          },
+          error = function(e) {
+            ""
+          }
+        )
       },
       ignoreInit = TRUE
     )

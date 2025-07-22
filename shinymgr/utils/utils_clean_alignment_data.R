@@ -26,6 +26,8 @@ clean_alignment_data <- function(dirty_data) {
         stop("Input data is empty or NULL")
       }
 
+      qualtrics_metadata_removed <- FALSE
+
       # Initialize clean_data
       logger::log_info("Initializing clean_data")
       clean_data <- dirty_data
@@ -35,16 +37,11 @@ clean_alignment_data <- function(dirty_data) {
         logger::log_info("Processing Qualtrics data")
         logger::log_info("Original row count: {nrow(clean_data)}")
         logger::log_info("Column names: {paste(names(clean_data), collapse = ', ')}")
-        # Store column names from first row
-        #col_names <- as.character(unlist(clean_data[1, ]))
-        #logger::log_info("Column names: {paste(col_names, collapse = ', ')}")
-        
         # Remove first 3 rows (headers + 2 metadata rows)
         clean_data <- clean_data[-c(1, 2), ]
-        
+        qualtrics_metadata_removed <- TRUE
         # Set column names
         #names(clean_data) <- col_names
-        
         logger::log_info("After removing metadata rows - Rows: {nrow(clean_data)}")
         logger::log_info("Column names: {paste(names(clean_data), collapse = ', ')}")
         if(nrow(clean_data) > 0) {
@@ -59,7 +56,6 @@ clean_alignment_data <- function(dirty_data) {
         logger::log_info("Qualtrics data cleaned and structured successfully")
       } else {
         logger::log_info("Using raw alignment data (already cleaned or not needing cleaning)")
-        #clean_data <- dirty_data
       }
 
       # Select the required columns
@@ -154,22 +150,15 @@ clean_alignment_data <- function(dirty_data) {
         clean_data$rating <- as.numeric(clean_data$rating)
       } else {
         logger::log_warn("No data to process (empty or NULL) after initial cleaning in clean_alignment_data.")
-        return(data.frame(role = character()))
+        return(list(data = data.frame(role = character()), qualtrics_metadata_removed = qualtrics_metadata_removed))
       }
 
       logger::log_info("Alignment data cleaning completed successfully")
       logger::log_trace("Final data dimensions - Rows: {nrow(clean_data)}, Columns: {ncol(clean_data)}")
       logger::log_trace("Final column names: {paste(names(clean_data), collapse = ', ')}")
 
-      # Log data frame sample safely
-      # if (logger::log_threshold() <= logger::DEBUG) {
-      #   logger::log_debug("Sample of final data (first 3 rows):")
-      #   # Use message() for data frame output to avoid glue issues
-      #   message(paste0("\n", paste(utils::capture.output(utils::head(clean_data, 3)), collapse = "\n"), "\n"))
-      # }
-
       logger::log_trace("Returning cleaned alignment data")
-      return(clean_data)
+      return(list(data = clean_data, qualtrics_metadata_removed = qualtrics_metadata_removed))
     },
     error = function(e) {
       error_msg <- conditionMessage(e)

@@ -15,40 +15,12 @@
 #' @param dirty_data The input data frame to clean
 
 clean_data <- function(dirty_data) {
-  # Load dynamics mapping data INSIDE the function
-  # This prevents the app from crashing on startup if the file doesn't exist.
-  tryCatch(
-    {
-      # Try multiple possible paths for dynamics_data.csv
-      possible_paths <- c(
-        "dynamics_data.csv",
-        "shinymgr/dynamics_data.csv",
-        file.path(getwd(), "dynamics_data.csv"),
-        file.path(getwd(), "shinymgr", "dynamics_data.csv")
-      )
-      
-      dynamics_map <- NULL
-      for (path in possible_paths) {
-        if (file.exists(path)) {
-          logger::log_info("Found dynamics_data.csv at: {path}")
-          dynamics_map <- readr::read_csv(path)
-          break
-        }
-      }
-      
-      if (is.null(dynamics_map)) {
-        logger::log_error("Could not find dynamics_data.csv in any of the expected locations")
-        stop("Could not load 'dynamics_data.csv'. Please ensure the file is in the app's root directory or shinymgr subdirectory.")
-      }
-    },
-    error = function(e) {
-      logger::log_error("Failed to load 'dynamics_data.csv': {conditionMessage(e)}")
-      stop("Could not load 'dynamics_data.csv'. App startup aborted.")
-    }
-  )
+  # Load dynamics_map from the www directory
+  dynamics_map <- readr::read_csv("www/dynamics_map.csv")
 
   # Initialize result list
   result <- list()
+  qualtrics_metadata_removed <- FALSE
 
   # Input validation
   if (missing(dirty_data) || is.null(dirty_data)) {
@@ -64,6 +36,7 @@ clean_data <- function(dirty_data) {
       logger::log_info("Processing Qualtrics data format")
       clean_data <- dirty_data[-c(2, 3), -c(1:18)]
       logger::log_info("Qualtrics data cleaned - removed metadata rows and columns")
+      qualtrics_metadata_removed <- TRUE
     } else {
       clean_data <- dirty_data
     }
@@ -94,9 +67,8 @@ clean_data <- function(dirty_data) {
   # Process indicators data
   result <- process_indicators(clean_data)
 
-  # Process dynamics data
-  logger::log_info("Starting to process dynamics data...")
-  # Pass dynamics_map to the processing function
+  # Process dynamics data using the loaded mapping
+  logger::log_info("Processing dynamics data using mapping from www/dynamics_map.csv ...")
   dynamics_result <- process_dynamics(clean_data, dynamics_map)
   logger::log_info("Dynamics data processing completed")
 
@@ -108,6 +80,7 @@ clean_data <- function(dirty_data) {
   # Combine all results
   result$dynamics <- dynamics_result$dynamics
   result$cascade <- cascade_result$cascade
+  result$qualtrics_metadata_removed <- qualtrics_metadata_removed
 
   # Return the complete result
   return(result)
@@ -156,7 +129,11 @@ process_indicators <- function(clean_data) {
             by = "qualtrics_id"
           ) |>
           dplyr::select(-qualtrics_id) |>
-          dplyr::rename(value = rank)
+          dplyr::mutate(
+            value = as.numeric(rank),  # Ensure value is numeric
+            value = ifelse(is.na(value), 0, value)  # Replace NA with 0 if needed
+          ) |>
+          dplyr::select(-rank)  # Remove the original rank column
 
         logger::log_info("Processed indicators data successfully")
       } else {

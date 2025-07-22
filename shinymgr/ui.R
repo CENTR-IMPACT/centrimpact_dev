@@ -9,15 +9,16 @@ custom_theme <- bslib::bs_theme(
   version = 5,
   base_font = bslib::font_google("Lato", wght = c(400, 600)),
   heading_font = bslib::font_google("Lora", wght = c(400, 700)),
-  code_font = bslib::font_google("IBM Plex Mono", wght = c(400, 600)),
+  code_font = bslib::font_google("DM Mono", wght = c(300, 400, 600, 700)),
   bg = "#EDEAE2", # Main app background (lightest warm neutral)
   fg = "#2A2A2A", # Default text color (dark soft grey)
 
-  primary = "#3B6B35", # Forest green (for primary actions like "Clean Data")
-  secondary = "#CC6B4D", # Terracotta/Burnt Orange (secondary accent, for "Browse" buttons, hover states)
-  success = "#3B6B35", # Keep success same as primary
-  warning = "#D17C45", # Existing warm warning
-  danger = "#A64B42", # Existing muted red danger
+  primary = "#5C6470", 
+  secondary = "#7A734D",
+  info = "#5A6C75",
+  success = "#5D7359", 
+  warning = "#C5A259", 
+  danger = "#8F524E", 
 
   "sidebar-bg" = "#5C5A58", # **Crucial: Darker, rich warm grey/brown for sidebar background**
   "sidebar-fg" = "#F5F1E8", # **Crucial: Creamy white for text/icons on dark sidebar**
@@ -155,41 +156,7 @@ ui <- tagList(
         div(
           class = "d-flex align-items-center justify-content-center gap-2 infocard",
           ph("toolbox", weight = "light", class = "sidebar-icon"),
-          "Tools",
-          #          style = "width: 85%; font-size: 1em !important; color: #4a4a4a; font-weight: light; text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.2);
-          #          border-top: solid 1px #d3d3d366; border-bottom: solid 1px #d3d3d366; padding: 0.25em; margin: 1.25em auto 0.25em auto !important;"
-        )
-      ),
-      # fluidRow(
-      #   column(
-      #     width = 10,
-      #     actionButton(
-      #       inputId = "overview_mode",
-      #       class = "d-flex align-items-center justify-content-center gap-1",
-      #       label = "Dark Mode",
-      #       style = "width: 100%; font-size: 1em;"
-      #     )
-      #   ),
-      #   column(
-      #     width = 2,
-      #     class = "d-flex align-items-center justify-content-center",
-      #     bslib::input_dark_mode()
-      #   )
-      # ),
-      fluidRow(
-        column(
-          width = 10,
-          actionButton(
-            inputId = "overview_mode",
-            class = "d-flex align-items-center justify-content-center gap-1 action-button action-dynamics",
-            label = "Overview Mode",
-            style = "width: 100%; font-size: 1em;"
-          )
-        ),
-        column(
-          width = 2,
-          class = "d-flex align-items-center justify-content-center",
-          uiOutput("overview_indicator")
+          "Tools"
         )
       ),
       fluidRow(
@@ -223,9 +190,25 @@ ui <- tagList(
           class = "d-flex align-items-center justify-content-center",
           uiOutput("snapshot_indicator")
         )
+      ),
+    fluidRow(
+      column(
+        width = 10,
+        actionButton(
+          inputId = "load_snapshot",
+          class = "d-flex align-items-center justify-content-center gap-1 action-button action-cascade",
+          label = "Load Snapshot",
+          style = "width: 100%; font-size: 1em;"
+        )
+      ),
+      column(
+        width = 2,
+        class = "d-flex align-items-center justify-content-center",
+        uiOutput("snapshot_load_indicator")
       )
-    ),
-
+    )
+  ),
+  
     # Navigation panels (comma-separated)
     bslib::nav_panel(
       title = "Home",
@@ -245,13 +228,13 @@ ui <- tagList(
       mod_load_clean_ui("load_clean_1"),
       class = "main_content"
     ),
-    bslib::nav_panel(
-      title = "Enter Data",
-      icon = ph("pencil-ruler", weight = "fill"),
-      mod_enter_data_ui("enter_data_1"),
-      style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
-      class = "neumorphic"
-    ),
+    # bslib::nav_panel(
+    #   title = "Enter Data",
+    #   icon = ph("pencil-ruler", weight = "fill"),
+    #   mod_enter_data_ui("enter_data_1"),
+    #   style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
+    #   class = "neumorphic"
+    # ),
     bslib::nav_panel(
       title = "Analyze Data",
       icon = ph("calculator", weight = "fill"),

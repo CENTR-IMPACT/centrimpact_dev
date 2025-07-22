@@ -246,7 +246,20 @@ server <- function(input, output, session) {
       pdf = NULL,
       html = NULL,
       word = NULL
-    )
+    ),
+    # Add workflow variables from mod_load_clean.R
+    main_data_raw = NULL,
+    main_cleaned = NULL,
+    alignment_data_raw = NULL,
+    alignment_data = NULL,
+    dynamics_data = NULL,
+    cascade_data = NULL,
+    params = NULL,
+    edges = NULL,
+    nodes = NULL,
+    yaml_content = NULL,
+    file_name = NULL,
+    rv_status = NULL
   )
   ns_authors <- reactiveValues(
     author_list = data.frame(
@@ -324,6 +337,9 @@ server <- function(input, output, session) {
     visualize = NULL
   )
 
+  # Create a single shared rv_analysis for analysis and visualization modules
+  rv_analysis <- reactiveValues()
+
   # Track which modules have been initialized
   load_clean_initialized <- reactiveVal(FALSE)
   analyze_initialized <- reactiveVal(FALSE)
@@ -358,7 +374,7 @@ server <- function(input, output, session) {
       logger::log_info("Initializing load_clean module...")
       modules$load_clean <- mod_load_clean_server(
         id = "load_clean_1",
-        ns_workflow = ns_workflow
+        ns_project = ns_project
       )
       load_clean_initialized(TRUE)
       logger::log_info("load_clean module initialized successfully")
@@ -371,7 +387,8 @@ server <- function(input, output, session) {
       logger::log_info("Initializing analyze module...")
       modules$analyze <- mod_analyze_server(
         id = "analyze_data_1",
-        ns_workflow = ns_workflow
+        ns_project = ns_project,
+        rv_analysis = rv_analysis
       )
       analyze_initialized(TRUE)
       logger::log_info("analyze module initialized successfully")
@@ -384,7 +401,8 @@ server <- function(input, output, session) {
       logger::log_info("Initializing visualize module...")
       modules$visualize <- mod_visualize_server(
         id = "visualize_1",
-        ns_workflow = ns_workflow
+        ns_project = ns_project,
+        rv_analysis = rv_analysis
       )
       logger::log_info("visualize module initialized successfully")
     }
@@ -393,60 +411,63 @@ server <- function(input, output, session) {
 
 
   # Single consolidated observer for main_navbar changes
-  observeEvent(input$main_navbar, {
-    req(input$main_navbar)
-    logger::log_info("Main tab changed to:", input$main_navbar)
-    
-    # Handle Project Setup tab
-    if (input$main_navbar == "Project Setup") {
-      # Update workflow step if not already done
-      if (!workflow_updates$project_setup_initiated) {
-        logger::log_info("Updating Project Setup workflow to in progress")
-        update_workflow_step(
-          ns_workflow,
-          stage = "Project Setup",
-          status = "in progress",
-          session = session,
-          ns = NULL
-        )
-        workflow_updates$project_setup_initiated <- TRUE
+  observeEvent(input$main_navbar,
+    {
+      req(input$main_navbar)
+      logger::log_info("Main tab changed to:", input$main_navbar)
+
+      # Handle Project Setup tab
+      if (input$main_navbar == "Project Setup") {
+        # Update workflow step if not already done
+        if (!workflow_updates$project_setup_initiated) {
+          logger::log_info("Updating Project Setup workflow to in progress")
+          update_workflow_step(
+            ns_workflow,
+            stage = "Project Setup",
+            status = "in progress",
+            session = session,
+            ns = NULL
+          )
+          workflow_updates$project_setup_initiated <- TRUE
+        }
       }
-    }
 
-    # Handle Upload Data tab
-    if (input$main_navbar == "Upload Data") {
-      logger::log_info("Upload Data tab selected")
+      # Handle Upload Data tab
+      if (input$main_navbar == "Upload Data") {
+        logger::log_info("Upload Data tab selected")
 
-      # Update workflow steps if not already done
-      if (!workflow_updates$load_data_initiated) {
-        logger::log_info("Updating Upload Data workflow to in progress")
-        update_workflow_step(
-          ns_workflow,
-          stage = "Upload Data",
-          status = "in progress",
-          session = session,
-          ns = NULL
-        )
-        workflow_updates$load_data_initiated <- TRUE
+        # Update workflow steps if not already done
+        if (!workflow_updates$load_data_initiated) {
+          logger::log_info("Updating Upload Data workflow to in progress")
+          update_workflow_step(
+            ns_workflow,
+            stage = "Upload Data",
+            status = "in progress",
+            session = session,
+            ns = NULL
+          )
+          workflow_updates$load_data_initiated <- TRUE
+        }
       }
-    }
 
-    # Handle Analyze Data tab
-    if (input$main_navbar == "Analyze Data") {
-      message("Analyze Data tab selected")
-      logger::log_info("Analyze Data tab selected")
+      # Handle Analyze Data tab
+      if (input$main_navbar == "Analyze Data") {
+        message("Analyze Data tab selected")
+        logger::log_info("Analyze Data tab selected")
 
-      # Just log the current status, module is already initialized at the top level
-      logger::log_info("Analyze module initialization status: ", analyze_initialized())
+        # Just log the current status, module is already initialized at the top level
+        logger::log_info("Analyze module initialization status: ", analyze_initialized())
 
-      # Log the current alignment data status
-      if (!is.null(modules$load_clean) && !is.null(modules$load_clean$rv$alignment)) {
-        logger::log_info("Alignment data is available in load_clean module")
-      } else {
-        logger::log_warn("No alignment data available in load_clean module")
+        # Log the current alignment data status
+        if (!is.null(modules$load_clean) && !is.null(modules$load_clean$rv$alignment)) {
+          logger::log_info("Alignment data is available in load_clean module")
+        } else {
+          logger::log_warn("No alignment data available in load_clean module")
+        }
       }
-    }
-  }, ignoreInit = TRUE)
+    },
+    ignoreInit = TRUE
+  )
 
   # Render the report icons in the main app
   # (Handled above with setup_module return values)
@@ -504,6 +525,11 @@ server <- function(input, output, session) {
     }
   })
 
+  output$snapshot_load_indicator <- renderUI({
+      ph("camera-plus", weight = "light", class = "indicator-icon")
+  })
+  
+  
   observeEvent(input$data_entry_mode, {
     # Toggle the data entry mode state
     data_entry_mode(!data_entry_mode())
@@ -600,7 +626,7 @@ server <- function(input, output, session) {
   })
   output$workflow_clean_icon <- renderUI({
     is_complete <- !is.null(ns_workflow$clean_status) && ns_workflow$clean_status == "complete" &&
-                   !is.null(ns_workflow$upload_status) && ns_workflow$upload_status == "complete"
+      !is.null(ns_workflow$upload_status) && ns_workflow$upload_status == "complete"
     weight <- if (is_complete) "fill" else "light"
     color <- if (is_complete) "#4CAF50" else "#d3d3d366"
     ph("broom", weight = weight, class = "sidebar-icon", style = paste0("color: ", color, ";"))

@@ -796,8 +796,8 @@
     },
     "centrimpact": {
       "Package": "centrimpact",
-      "Version": "0.1.0",
-      "Source": "unknown",
+      "Version": "1.0.0",
+      "Source": "GitHub",
       "Type": "Package",
       "Title": "Supporting the Analysis and Visualization of Community Engaged Research Metrics",
       "Authors@R": "c( person( \"Jeremy\", \"Price\", email = \"jfprice@iu.edu\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-6506-3526\") ) )",
@@ -823,7 +823,8 @@
         "psych (>= 2.3.0)",
         "tibble",
         "stats",
-        "utils"
+        "utils",
+        "lifecycle"
       ],
       "Suggests": [
         "testthat (>= 3.0.0)"
@@ -831,6 +832,13 @@
       "URL": "https://github.com/CENTRIMPACT/centrimpact",
       "BugReports": "https://github.com/CENTRIMPACT/centrimpact/issues",
       "Config/testthat/edition": "3",
+      "Roxygen": "list(markdown = TRUE)",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "centrimpact",
+      "RemoteUsername": "CENTR-IMPACT",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "919f41b0cfbb2c7ce4486ce1ed9034e82509bc34",
       "NeedsCompilation": "no",
       "Author": "Jeremy Price [aut, cre] (<https://orcid.org/0000-0002-6506-3526>)",
       "Maintainer": "Jeremy Price <jfprice@iu.edu>"
@@ -2630,13 +2638,12 @@
     },
     "linkcomm": {
       "Package": "linkcomm",
-      "Version": "1.0-14",
-      "Source": "Repository",
+      "Version": "1.0-15",
+      "Source": "GitHub",
       "Type": "Package",
       "Title": "Tools for Generating, Visualizing, and Analysing Link Communities in Networks",
-      "Date": "2021-02-03",
-      "Author": "Alex T. Kalinka <alex.t.kalinka@gmail.com>, with contributions from Alain Guenoche",
-      "Maintainer": "Alex T. Kalinka <alex.t.kalinka@gmail.com>",
+      "Date": "2025-06-22",
+      "Authors@R": "c( person(\"Alex\", \"Kalinka\", , \"alex.t.kalinka@gmail.com\", role = c(\"aut\", \"cre\")), person(\"Alain\", \"Guenoche\", role = \"ctb\") )",
       "Description": "Link communities reveal the nested and overlapping structure in networks, and uncover the key nodes that form connections to multiple communities. linkcomm provides a set of tools for generating, visualizing, and analysing link communities in networks of arbitrary size and type. The linkcomm package also includes tools for generating, visualizing, and analysing Overlapping Cluster Generator (OCG) communities. Kalinka and Tomancak (2011) <doi:10.1093/bioinformatics/btr311>.",
       "License": "GPL (>= 2)",
       "URL": "https://alextkalinka.github.io/linkcomm/, https://github.com/alextkalinka/linkcomm",
@@ -2658,7 +2665,15 @@
       "LazyData": "yes",
       "LazyLoad": "yes",
       "NeedsCompilation": "yes",
-      "Repository": "CRAN"
+      "Repository": "CRAN",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteRepo": "linkcomm",
+      "RemoteUsername": "alextkalinka",
+      "RemoteRef": "HEAD",
+      "RemoteSha": "8ab2ff109ec752f80e4b308fbf84f1a3a1ebf8eb",
+      "Author": "Alex Kalinka [aut, cre], Alain Guenoche [ctb]",
+      "Maintainer": "Alex Kalinka <alex.t.kalinka@gmail.com>"
     },
     "lmom": {
       "Package": "lmom",
@@ -3362,16 +3377,16 @@
     },
     "purrr": {
       "Package": "purrr",
-      "Version": "1.0.4",
+      "Version": "1.1.0",
       "Source": "Repository",
       "Title": "Functional Programming Tools",
-      "Authors@R": "c( person(\"Hadley\", \"Wickham\", , \"hadley@posit.co\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0003-4757-117X\")), person(\"Lionel\", \"Henry\", , \"lionel@posit.co\", role = \"aut\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\"), comment = c(ROR = \"03wc8by49\")) )",
+      "Authors@R": "c( person(\"Hadley\", \"Wickham\", , \"hadley@posit.co\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0003-4757-117X\")), person(\"Lionel\", \"Henry\", , \"lionel@posit.co\", role = \"aut\"), person(\"Posit Software, PBC\", role = c(\"cph\", \"fnd\"), comment = c(ROR = \"https://ror.org/03wc8by49\")) )",
       "Description": "A complete and consistent functional programming toolkit for R.",
       "License": "MIT + file LICENSE",
       "URL": "https://purrr.tidyverse.org/, https://github.com/tidyverse/purrr",
       "BugReports": "https://github.com/tidyverse/purrr/issues",
       "Depends": [
-        "R (>= 4.0)"
+        "R (>= 4.1)"
       ],
       "Imports": [
         "cli (>= 3.6.1)",
@@ -3381,11 +3396,13 @@
         "vctrs (>= 0.6.3)"
       ],
       "Suggests": [
+        "carrier (>= 0.2.0)",
         "covr",
         "dplyr (>= 0.7.8)",
         "httr",
         "knitr",
         "lubridate",
+        "mirai (>= 2.4.0)",
         "rmarkdown",
         "testthat (>= 3.0.0)",
         "tibble",
@@ -3403,9 +3420,9 @@
       "Encoding": "UTF-8",
       "RoxygenNote": "7.3.2",
       "NeedsCompilation": "yes",
-      "Author": "Hadley Wickham [aut, cre] (<https://orcid.org/0000-0003-4757-117X>), Lionel Henry [aut], Posit Software, PBC [cph, fnd] (03wc8by49)",
+      "Author": "Hadley Wickham [aut, cre] (ORCID: <https://orcid.org/0000-0003-4757-117X>), Lionel Henry [aut], Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
-      "Repository": "CRAN"
+      "Repository": "RSPM"
     },
     "qualtRics": {
       "Package": "qualtRics",
