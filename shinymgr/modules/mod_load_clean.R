@@ -23,12 +23,14 @@ logger::log_info("mod_load_clean module is being loaded")
 #' @importFrom shinyAce aceEditor updateAceEditor
 #' @importFrom shinyWidgets progressBar updateProgressBar
 # Note: utils functions are sourced in global.R, so they are available globally
-# !! ModDisplayName = Load Data
-# !! ModDescription = This module handles the loading and cleaning of project and alignment data.
-# !! ModCitation = Price, Jeremy.  (2025). mod_load_clean. [Source code].
-# !! ModNotes = This module relies on helper functions from utils_clean_data.R and utils_clean_alignment_data.R
-# !! ModActive = 1
-# !! FunctionReturn = rv !! A reactive values list containing all cleaned data !! reactivevalues
+#!! ModDisplayName = Load and Clean Data
+#!! ModDescription = Load and clean project data
+#!! ModCitation = Price, Jeremy F. (2025). mod_load_clean. [Source code].
+#!! ModNotes = This module provides functionality to load and clean project data.
+#!! ModActive = 1
+#!! FunctionArg = project_data !! Project data for loading and cleaning !! reactive
+
+# Utilities are loaded in global.R
 
 # =================================================================================================
 # UI Function
@@ -147,19 +149,18 @@ mod_load_clean_ui <- function(id) {
 # =================================================================================================
 # Server Function
 # =================================================================================================
-mod_load_clean_server <- function(id, ns_project) {
+mod_load_clean_server <- function(id, project_data) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-
-    # Reactive values for data
+    
+    # Initialize reactive values
     rv <- reactiveValues(
-      main_data_file = NULL,
-      alignment_data_file = NULL,
-      indicators = NULL,
+      main = NULL,
       alignment = NULL,
+      indicators = NULL,
       dynamics = NULL,
       cascade = NULL,
-      workflow = ns_project
+      workflow = project_data
     ) # closes reactiveValues
 
     # Observer for main data file upload
@@ -256,15 +257,15 @@ mod_load_clean_server <- function(id, ns_project) {
 
             # Update workflow with all cleaned data for other modules to access
             if (!is.null(main_cleaned$indicators)) {
-              ns_project$indicators_data <- main_cleaned$indicators
+              project_data$cleaned_data$indicators <- main_cleaned$indicators
               logger::log_info("Indicators data updated in workflow: {nrow(main_cleaned$indicators)} rows, {ncol(main_cleaned$indicators)} columns")
             }
             if (!is.null(main_cleaned$dynamics)) {
-              ns_project$dynamics_data <- main_cleaned$dynamics
+              project_data$cleaned_data$dynamics <- main_cleaned$dynamics
               logger::log_info("Dynamics data updated in workflow: {nrow(main_cleaned$dynamics)} rows, {ncol(main_cleaned$dynamics)} columns")
             }
             if (!is.null(main_cleaned$cascade)) {
-              ns_project$cascade_data <- main_cleaned$cascade
+              project_data$cleaned_data$cascade <- main_cleaned$cascade
               logger::log_info("Cascade data updated in workflow: {if(is.list(main_cleaned$cascade)) paste(names(main_cleaned$cascade), collapse=', ') else class(main_cleaned$cascade)}")
             }
           }
@@ -286,7 +287,7 @@ mod_load_clean_server <- function(id, ns_project) {
             logger::log_info("Cleaned alignment data dimensions: {nrow(rv$alignment)} rows, {ncol(rv$alignment)} columns")
 
             # Update workflow with alignment data for other modules to access
-            ns_project$alignment_data <- rv$alignment
+            project_data$cleaned_data$alignment <- rv$alignment
             logger::log_info("Alignment data updated in workflow: {nrow(rv$alignment)} rows, {ncol(rv$alignment)} columns")
           }
 
@@ -294,21 +295,21 @@ mod_load_clean_server <- function(id, ns_project) {
 
           # Log what data was shared with the workflow
           logger::log_info("=== DATA SHARING SUMMARY ===")
-          if (!is.null(ns_project$alignment_data)) {
-            logger::log_info("Alignment data shared: {nrow(ns_project$alignment_data)} rows, {ncol(ns_project$alignment_data)} columns")
+          if (!is.null(project_data$cleaned_data$alignment)) {
+            logger::log_info("Alignment data shared: {nrow(project_data$cleaned_data$alignment)} rows, {ncol(project_data$cleaned_data$alignment)} columns")
           } else {
             logger::log_info("No alignment data shared")
           }
-          if (!is.null(ns_project$dynamics_data)) {
-            logger::log_info("Dynamics data shared: {nrow(ns_project$dynamics_data)} rows, {ncol(ns_project$dynamics_data)} columns")
+          if (!is.null(project_data$cleaned_data$dynamics)) {
+            logger::log_info("Dynamics data shared: {nrow(project_data$cleaned_data$dynamics)} rows, {ncol(project_data$cleaned_data$dynamics)} columns")
           } else {
             logger::log_info("No dynamics data shared")
           }
-          if (!is.null(ns_project$cascade_data)) {
-            if (is.list(ns_project$cascade_data)) {
-              logger::log_info("Cascade data shared: list with elements: {paste(names(ns_project$cascade_data), collapse = ', ')}")
+          if (!is.null(project_data$cleaned_data$cascade)) {
+            if (is.list(project_data$cleaned_data$cascade)) {
+              logger::log_info("Cascade data shared: list with elements: {paste(names(project_data$cleaned_data$cascade), collapse = ', ')}")
             } else {
-              logger::log_info("Cascade data shared: {class(ns_project$cascade_data)}")
+              logger::log_info("Cascade data shared: {class(project_data$cleaned_data$cascade)}")
             }
           } else {
             logger::log_info("No cascade data shared")
@@ -351,7 +352,7 @@ mod_load_clean_server <- function(id, ns_project) {
     # (REMOVED)
 
     output$cascade_ui <- renderUI({
-      if (is.null(ns_project$cascade_data)) {
+      if (is.null(project_data$cleaned_data$cascade)) {
         return(
           tags$div(
             class = "data-placeholder",
@@ -451,15 +452,16 @@ mod_load_clean_server <- function(id, ns_project) {
     # --- Cascade Effects YAML and Network Plot ---
     # Load default YAML content
     observe({
-      req(ns_project$cascade_data)
+      # Only proceed if we have cascade data
+      req(!is.null(project_data$cleaned_data$cascade))
       tryCatch(
         {
           # Use the YAML model from cascade analysis if available
-          if (!is.null(ns_project$cascade_data$model)) {
-            yaml_content <- yaml::as.yaml(ns_project$cascade_data$model)
+          if (!is.null(project_data$cleaned_data$cascade$model)) {
+            yaml_content <- yaml::as.yaml(project_data$cleaned_data$cascade$model)
             logger::log_info("Cascade YAML editor populated from cascade analysis model.")
           } else {
-            yaml_content <- generate_cascade_yaml(ns_project$cascade_data)
+            yaml_content <- generate_cascade_yaml(project_data$cleaned_data$cascade)
             logger::log_info("Cascade YAML editor populated with default template.")
           }
           shinyAce::updateAceEditor(session, "cascade_yaml_editor", value = yaml_content)
@@ -582,9 +584,9 @@ mod_load_clean_server <- function(id, ns_project) {
       content_ui = DT::dataTableOutput(ns("cascade_overlay_table"))
     ) # closes overlay_card_server (cascade_overlay)
     output$cascade_overlay_table <- DT::renderDataTable({
-      req(ns_project$cascade_data)
-      req(ns_project$cascade_data$edges)
-      DT::datatable(ns_project$cascade_data$edges, options = list(scrollX = TRUE, pageLength = 10, dom = "ftip"), rownames = FALSE)
+      req(project_data$cleaned_data$cascade)
+      req(project_data$cleaned_data$cascade$edges)
+      DT::datatable(project_data$cleaned_data$cascade$edges, options = list(scrollX = TRUE, pageLength = 10, dom = "ftip"), rownames = FALSE)
     }) # closes renderDataTable (cascade_overlay_table)
     output$cascade_overlay_ui <- renderUI({
       overlay_card_ui("cascade_overlay", "Cleaned Cascade Effects Data", DT::dataTableOutput(ns("cascade_overlay_table")))
@@ -669,9 +671,9 @@ mod_load_clean_server <- function(id, ns_project) {
           style = "margin-bottom: 1em;",
           tags$legend(class = "custom-legend", "Cascade Effects"),
           metric_section_ui(
-            data = if (!is.null(ns_project$cascade_data) && !is.null(ns_project$cascade_data$edges)) ns_project$cascade_data$edges else NULL,
+            data = if (!is.null(project_data$cleaned_data$cascade) && !is.null(project_data$cleaned_data$cascade$edges)) project_data$cleaned_data$cascade$edges else NULL,
             value_box_title = "Cascade Effects",
-            score = if (!is.null(ns_project$cascade_data) && !is.null(ns_project$cascade_data$edges)) nrow(ns_project$cascade_data$edges) else 0,
+            score = if (!is.null(project_data$cleaned_data$cascade) && !is.null(project_data$cleaned_data$cascade$edges)) nrow(project_data$cleaned_data$cascade$edges) else 0,
             type = "cascade",
             bgcolor = "#B49291",
             icon_choice = ph_i("waveform", weight = "bold", size = "4x"),

@@ -1,13 +1,12 @@
 #!! ModName = mod_visualize
-# !! ModDisplayName = Enter your module shiny display name here.
-# !! ModDescription = Enter your module description here.
-# !! ModCitation = Price, Jeremy F.  (2025). mod_visualize. [Source code].
-# !! ModNotes = Enter your module notes here.
-# !! ModActive = 1/0
-# !! FunctionArg = argName1 !! argDescription !! argClass
-# !! FunctionArg = argName2 !! argDescription !! argClass
-# !! FunctionReturn = returnName1 !! returnDescription !! returnClass
-# !! FunctionReturn = returnName2 !! returnDescription !! returnClass
+#!! ModDisplayName = Visualize Data
+#!! ModDescription = Create visualizations for project data
+#!! ModCitation = Price, Jeremy F. (2025). mod_visualize. [Source code].
+#!! ModNotes = This module provides functionality to visualize project data.
+#!! ModActive = 1
+#!! FunctionArg = project_data !! Project data for visualization !! reactive
+
+# Utilities are loaded in global.R
 
 # Load required libraries
 #' @importFrom dplyr ungroup filter
@@ -455,12 +454,12 @@ visualize_metric_section_ui <- function(
 }
 
 # the server function
-mod_visualize_server <- function(id, ns_project, rv_analysis) {
+mod_visualize_server <- function(id, project_data) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
-
-    # Create workflow observers using centralized utility functions
-    create_workflow_observers(ns_project, ns, session)
+    
+    # Create workflow observers
+    create_workflow_observers(project_data, ns, session)
 
     # Initialize individual reactive values (do NOT create rv_analysis here)
     visualization_type <- reactiveVal(NULL)
@@ -627,10 +626,10 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
 
     # --- Observe per-metric workflow state for Alignment Clean Data completion and update status/icon ---
     observe({
-      wf <- ns_project$workflow$alignment
+      wf <- project_data$workflow$alignment
       if (!is.null(wf) && wf$stage == "Clean Data" && wf$status == "complete") {
-        update_alignment_status_display("cleaned", session, ns, ns_project)
-        update_alignment_workflow_icons(ns_project, session)
+        update_alignment_status_display("cleaned", session, ns, project_data)
+        update_alignment_workflow_icons(project_data, session)
       }
     })
 
@@ -682,7 +681,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
 
       # Update workflow status
       update_workflow_step(
-        ns_project,
+        project_data,
         stage = "Visualize Findings",
         status = "complete",
         session = session
@@ -757,7 +756,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
               output, ns,
               plot_id = "indicators_plot",
               plot_func = function(data) create_indicators_plots(data, color_palette)$main,
-              data = ns_project$indicators_data,
+              data = project_data$cleaned_data$indicators,
               legend = "Project Indicators",
               preview_func = function(data) create_indicators_plots(data, color_palette)$preview
             )
@@ -782,7 +781,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
 
             # Update workflow status
             update_workflow_step(
-              ns_project,
+              project_data,
               stage = "Visualize Findings",
               status = "complete",
               session = session
@@ -820,7 +819,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
 
             # Update workflow status
             update_workflow_step(
-              ns_project,
+              project_data,
               stage = "Visualize Findings",
               status = "complete",
               session = session
@@ -856,7 +855,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
 
             # Update workflow status and show success message
             update_workflow_step(
-              ns_project,
+              project_data,
               stage = "Visualize Findings",
               status = "complete",
               session = session
@@ -880,7 +879,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
               output, ns,
               plot_id = "indicators_plot",
               plot_func = function(data) create_indicators_plots(data, color_palette)$main,
-              data = ns_project$indicators_data,
+              data = project_data$cleaned_data$indicators,
               legend = "Project Indicators",
               preview_func = function(data) create_indicators_plots(data, color_palette)$preview
             )
@@ -945,7 +944,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
 
             # Finalize
             update_workflow_step(
-              ns_project,
+              project_data,
               stage = "Visualize Findings",
               status = "complete",
               session = session
@@ -1019,12 +1018,12 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
 
             # Log the structure of the workflow data
             cat("\n=== Workflow Data Structure ===\n")
-            str(ns_project$indicators_data)
+            str(project_data$cleaned_data$indicators)
 
-            req(ns_project$indicators_data)
+            req(project_data$cleaned_data$indicators)
             cat("Indicators data found, proceeding with visualization\n")
 
-            df <- ns_project$indicators_data
+            df <- project_data$cleaned_data$indicators
             cat("Data dimensions: ", nrow(df), " rows x ", ncol(df), " columns\n", sep = "")
             cat("Column names: ", paste(names(df), collapse = ", "), "\n", sep = "")
 
@@ -1108,7 +1107,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
           })
 
           update_workflow_step(
-            ns_project,
+            project_data,
             stage = "Visualize Findings",
             status = "complete",
             session = session
@@ -1146,7 +1145,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
           Sys.sleep(0.5)
           dynamics_visualized(TRUE)
           update_workflow_step(
-            ns_project,
+            project_data,
             stage = "Visualize Findings",
             status = "complete",
             session = session
@@ -1185,7 +1184,7 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
           Sys.sleep(0.5)
           cascade_visualized(TRUE)
           update_workflow_step(
-            ns_project,
+            project_data,
             stage = "Visualize Findings",
             status = "complete",
             session = session
@@ -1235,34 +1234,34 @@ mod_visualize_server <- function(id, ns_project, rv_analysis) {
           update_progress(100, "Finalizing...")
           full_visualized(TRUE)
           update_workflow_step(
-            ns_project,
+            project_data,
             stage = "Visualize Findings",
             status = "complete",
             metric = "alignment",
             session = session
           )
           update_workflow_step(
-            ns_project,
+            project_data,
             stage = "Visualize Findings",
             status = "complete",
             metric = "indicators",
             session = session
           )
           update_workflow_step(
-            ns_project,
+            project_data,
             stage = "Visualize Findings",
             status = "complete",
             metric = "dynamics",
             session = session
           )
           update_workflow_step(
-            ns_project,
+            project_data,
             stage = "Visualize Findings",
             status = "complete",
             metric = "cascade",
             session = session
           )
-          update_alignment_workflow_icons(ns_project, session, ns)
+          update_alignment_workflow_icons(project_data, session, ns)
           # update_main_data_workflow_icons("Visualize Findings", "complete", session, ns, ns_workflow)
           cat("Full visualization completed\n")
           visualization_type("success")

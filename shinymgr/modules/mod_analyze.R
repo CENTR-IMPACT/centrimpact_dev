@@ -1,7 +1,18 @@
 #!! ModName = mod_analyze
+# !! ModDisplayName = Analyze Data
+# !! ModDescription = Analyze project data including alignment, dynamics, and cascade metrics
+# !! ModCitation = Price, Jeremy F. (2025). mod_analyze. [Source code].
+# !! ModNotes = This module provides functionality to analyze project data across multiple dimensions.
+# !! ModActive = 1
+# !! FunctionArg = project_data !! Project data for analysis !! reactive
 
-# Debug message to verify module is loaded
-message("Analyze module is being loaded")
+# Utilities are loaded in global.R
+
+# Minimal logger:: logging for module load
+logger::log_info("[@mod_analyze.R] Analyze module loaded")
+
+# Define null-coalescing operator for cleaner code
+`%||%` <- function(x, y) if (is.null(x)) y else x
 # !! ModDisplayName = Analyze Data
 # !! ModDescription = Analyze your project data.
 # !! ModCitation = Price, Jeremy F.  (2025). mod_analyze. [Source code].
@@ -173,29 +184,39 @@ mod_analyze_ui <- function(id) {
   )
 }
 
-
-
-
 # Helper to safely round numeric values, fallback to 0 if NA or not numeric
 safe_round <- function(x, digits = 2) {
   val <- suppressWarnings(as.numeric(x))
-  if (is.na(val)) val <- 0
+  if (is.null(val) || length(val) == 0 || is.na(val)) {
+    return(0)
+  }
   round(val, digits)
 }
 
 # the server function with enhanced debugging
-mod_analyze_server <- function(id, ns_project, rv_analysis) {
-  message("=== mod_analyze_server CALLED with id: ", id, " ===")
+mod_analyze_server <- function(id, project_data) {
+  logger::log_info(paste0("[@mod_analyze.R] mod_analyze_server called with id: ", id))
 
-  # Debug the alignment_data parameter
-  cat("\n=== MODULE INITIALIZATION ===\n")
-  cat("ns_project type:", class(ns_project), "\n")
-  cat("Is ns_project reactive?", is.reactive(ns_project), "\n\n")
+  # Initialize analysis results in project_data if not already present
+  if (is.null(project_data$analysis)) {
+    project_data$analysis <- reactiveValues(
+      alignment_analyzed = FALSE,
+      dynamics_analyzed = FALSE,
+      cascade_analyzed = FALSE,
+      last_analysis_type = NULL,
+      last_updated = NULL,
+      alignment = NULL,
+      dynamics = NULL,
+      cascade = NULL
+    )
+  }
+
+  # No need for local reference, we'll use project_data$analysis directly
 
   moduleServer(
     id = id,
     module = function(input, output, session) {
-      message("=== MODULE SERVER INITIALIZED ===")
+      logger::log_info("[@mod_analyze.R] Module server initialized")
 
       # Get the namespace for this module
       ns <- session$ns
@@ -249,6 +270,45 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
       #' @param data The data frame to check (e.g., rv$indicators)
       #' @param value_box_title Title for the value box
       #' @param score The score to display in the value box (usually nrow(data))
+
+      # Overlay server logic (update to use new structure)
+      observe({
+        # Alignment overlay table
+        output$full_alignment_table_overlay <- DT::renderDataTable({
+          req(project_data$analysis$alignment_analyzed)
+          req(!is.null(project_data$analysis$alignment))
+          req(!is.null(project_data$analysis$alignment$alignment_medians))
+          project_data$analysis$alignment$alignment_medians
+        })
+
+        # Dynamics overlay table
+        output$full_dynamics_table_overlay <- DT::renderDataTable({
+          req(project_data$analysis$dynamics_analyzed)
+          req(!is.null(project_data$analysis$dynamics))
+          # If the package returns a domain summary, use it; otherwise, fallback to the main result
+          if (!is.null(project_data$analysis$dynamics$domain_df)) {
+            project_data$analysis$dynamics$domain_df
+          } else if (!is.null(project_data$analysis$dynamics$dynamics_df)) {
+            project_data$analysis$dynamics$dynamics_df
+          } else {
+            NULL
+          }
+        })
+
+        # Cascade overlay table
+        output$cascade_results_table_overlay <- DT::renderDataTable({
+          req(project_data$analysis$cascade_analyzed)
+          req(!is.null(project_data$analysis$cascade))
+          # If the package returns a cascade_results df, use it; otherwise, fallback to the main result
+          if (!is.null(project_data$analysis$cascade$cascade_results)) {
+            project_data$analysis$cascade$cascade_results
+          } else if (!is.null(project_data$analysis$cascade$cascade_df)) {
+            project_data$analysis$cascade$cascade_df
+          } else {
+            NULL
+          }
+        })
+      })
       #' @param type The type for the value box (for styling)
       #' @param bgcolor Background color for the value box
       #' @param icon_choice Icon for the value box
@@ -356,6 +416,45 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         )
       })
 
+      # Overlay server logic (update to use new structure)
+      observe({
+        # Alignment overlay table
+        output$full_alignment_table_overlay <- DT::renderDataTable({
+          req(project_data$analysis$alignment_analyzed)
+          req(!is.null(project_data$analysis$alignment))
+          req(!is.null(project_data$analysis$alignment$alignment_medians))
+          project_data$analysis$alignment$alignment_medians
+        })
+
+        # Dynamics overlay table
+        output$full_dynamics_table_overlay <- DT::renderDataTable({
+          req(project_data$analysis$dynamics_analyzed)
+          req(!is.null(project_data$analysis$dynamics))
+          # If the package returns a domain summary, use it; otherwise, fallback to the main result
+          if (!is.null(project_data$analysis$dynamics$domain_df)) {
+            project_data$analysis$dynamics$domain_df
+          } else if (!is.null(project_data$analysis$dynamics$dynamics_df)) {
+            project_data$analysis$dynamics$dynamics_df
+          } else {
+            NULL
+          }
+        })
+
+        # Cascade overlay table
+        output$cascade_results_table_overlay <- DT::renderDataTable({
+          req(project_data$analysis$cascade_analyzed)
+          req(!is.null(project_data$analysis$cascade))
+          # If the package returns a cascade_results df, use it; otherwise, fallback to the main result
+          if (!is.null(project_data$analysis$cascade$cascade_results)) {
+            project_data$analysis$cascade$cascade_results
+          } else if (!is.null(project_data$analysis$cascade$cascade_df)) {
+            project_data$analysis$cascade$cascade_df
+          } else {
+            NULL
+          }
+        })
+      })
+
       # Function to update console output
       update_console <- function(session, message, type = "info") {
         timestamp <- format(Sys.time(), "%H:%M:%S")
@@ -448,162 +547,76 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
       # Monitor data status continuously
       observe({
         status <- data_status()
-        message("Data status: ", status)
+        logger::log_info("[@mod_analyze.R] Data status checked")
       })
 
       # --- Observe per-metric workflow state for Alignment Clean Data completion and update status/icon ---
+      # Commented out ns_project references as they're not defined
+      # observe({
+      #   wf <- ns_project$workflow$alignment
+      #   if (!is.null(wf) && wf$stage == "Clean Data" && wf$status == "complete") {
+      #     update_alignment_status_display("cleaned", session, ns, ns_project)
+      #     update_alignment_workflow_icons(ns_project, session)
+      # --- Observe workflow state for Alignment Clean Data completion and update status/icon ---
       observe({
-        wf <- ns_project$workflow$alignment
-        if (!is.null(wf) && wf$stage == "Clean Data" && wf$status == "complete") {
-          update_alignment_status_display("cleaned", session, ns, ns_project)
-          update_alignment_workflow_icons(ns_project, session)
+        # Check if we have alignment data
+        if (!is.null(project_data$cleaned_data$alignment)) {
+          # For now, just log that we have alignment data
+          log_info("Alignment data is available")
         }
       })
 
-      # --- NEW: Observe workflow state for Alignment Clean Data completion and update status/icon ---
-      observe({
-        if (!is.null(ns_project$stage) && !is.null(ns_project$status) && !is.null(ns_project$metric)) {
-          if (
-            ns_project$stage == "Clean Data" &&
-              ns_project$status == "complete" &&
-              tolower(ns_project$metric) == "alignment"
-          ) {
-            update_alignment_status_display("cleaned", session, ns, ns_project)
-            update_alignment_workflow_icons(ns_project, session)
-          }
-        }
-      })
-
-
-      # Reactive expressions to get data from ns_project
+      # Reactive expressions to get data from project_data
       alignment_data <- reactive({
         log_debug("Accessing alignment data reactively...")
-        if (is.null(ns_project)) {
-          log_warn("ns_project is NULL")
-          return(NULL)
-        }
-
-        # Add more detailed debugging
-        log_debug("ns_project contains: {paste(names(ns_project), collapse = ', ')}")
-
-        if (is.null(ns_project$alignment_data)) {
-          log_warn("No alignment_data in ns_project. Available elements: {paste(names(ns_project), collapse = ', ')}")
+        if (is.null(project_data$cleaned_data$alignment)) {
+          log_warn("project_data$cleaned_data$alignment is NULL")
           return(NULL)
         }
 
         # Check if the data is actually a data frame
-        if (!is.data.frame(ns_project$alignment_data)) {
-          log_warn("alignment_data is not a data frame, it's: {class(ns_project$alignment_data)}")
+        if (!is.data.frame(project_data$cleaned_data$alignment)) {
+          log_warn("alignment_data is not a data frame, it's: {class(project_data$cleaned_data$alignment)}")
           return(NULL)
         }
 
-        log_info("Returning alignment data from reactive context: {nrow(ns_project$alignment_data)} rows, {ncol(ns_project$alignment_data)} columns")
-        return(ns_project$alignment_data)
+        log_info("Returning alignment data from reactive context: {nrow(project_data$cleaned_data$alignment)} rows, {ncol(project_data$cleaned_data$alignment)} columns")
+        return(project_data$cleaned_data$alignment)
       })
 
       dynamics_data <- reactive({
         log_debug("Accessing dynamics data reactively...")
-        if (is.null(ns_project)) {
-          log_warn("ns_project is NULL")
-          return(NULL)
-        }
-
-        # Add more detailed debugging
-        log_debug("ns_project contains: {paste(names(ns_project), collapse = ', ')}")
-
-        if (is.null(ns_project$dynamics_data)) {
-          log_warn("No dynamics_data in ns_project. Available elements: {paste(names(ns_project), collapse = ', ')}")
+        if (is.null(project_data$cleaned_data$dynamics)) {
+          log_warn("project_data$cleaned_data$dynamics is NULL")
           return(NULL)
         }
 
         # Check if the data is actually a data frame
-        if (!is.data.frame(ns_project$dynamics_data)) {
-          log_warn("dynamics_data is not a data frame, it's: {class(ns_project$dynamics_data)}")
+        if (!is.data.frame(project_data$cleaned_data$dynamics)) {
+          log_warn("dynamics_data is not a data frame, it's: {class(project_data$cleaned_data$dynamics)}")
           return(NULL)
         }
 
-        log_info("Returning dynamics data from reactive context: {nrow(ns_project$dynamics_data)} rows, {ncol(ns_project$dynamics_data)} columns")
-        return(ns_project$dynamics_data)
+        log_info("Returning dynamics data from reactive context: {nrow(project_data$cleaned_data$dynamics)} rows, {ncol(project_data$cleaned_data$dynamics)} columns")
+        return(project_data$cleaned_data$dynamics)
       })
 
       cascade_data <- reactive({
         log_debug("Accessing cascade data reactively...")
 
-        # Safely log the structure of ns_project
-        tryCatch(
-          {
-            log_info("ns_project contains:")
-            if (!is.null(ns_project)) {
-              log_info(paste("  -", names(ns_project), collapse = "\n"))
-            } else {
-              log_info("ns_project is NULL")
-            }
-          },
-          error = function(e) {
-            log_warn(paste("Could not log ns_project structure:", e$message))
-          }
-        )
-
-        if (is.null(ns_project) || is.null(ns_project$cascade_data)) {
-          log_warn("No cascade data available in ns_project")
+        if (is.null(project_data$cleaned_data$cascade)) {
+          log_warn("project_data$cleaned_data$cascade is NULL")
           return(NULL)
         }
 
-        cascade_data <- ns_project$cascade_data
-
-        # Log basic info about cascade_data
-        tryCatch(
-          {
-            log_info(paste("Type of cascade_data:", paste(class(cascade_data), collapse = ", ")))
-            if (is.list(cascade_data)) {
-              log_info(paste("List elements:", paste(names(cascade_data), collapse = ", ")))
-            }
-          },
-          error = function(e) {
-            log_warn(paste("Could not log cascade_data structure:", e$message))
-          }
-        )
-
-        # Handle different cascade_data formats
-        if (is.list(cascade_data) && all(c("cascade_df", "cascade_score") %in% names(cascade_data))) {
-          log_info("Found cascade_data with cascade_df and cascade_score")
-          if (is.data.frame(cascade_data$cascade_df)) {
-            log_info(sprintf(
-              "cascade_df: %d rows, %d columns",
-              nrow(cascade_data$cascade_df),
-              ncol(cascade_data$cascade_df)
-            ))
-            return(cascade_data$cascade_df)
-          }
+        # Check if the data is actually a data frame
+        if (!is.data.frame(project_data$cleaned_data$cascade)) {
+          log_warn("cascade_data is not a data frame, it's: {class(project_data$cleaned_data$cascade)}")
+          return(NULL)
         }
 
-        if (is.data.frame(cascade_data)) {
-          log_info(sprintf(
-            "Returning data frame: %d rows, %d columns",
-            nrow(cascade_data),
-            ncol(cascade_data)
-          ))
-          return(cascade_data)
-        }
-
-        if (is.list(cascade_data) && all(c("nodes", "edges") %in% names(cascade_data))) {
-          log_info("Found network data with nodes and edges")
-          if (is.data.frame(cascade_data$edges)) {
-            log_info(sprintf(
-              "Edges: %d rows, %d columns",
-              nrow(cascade_data$edges),
-              ncol(cascade_data$edges)
-            ))
-            return(cascade_data$edges)
-          }
-        }
-
-        # If we get here, we couldn't handle the data format
-        log_warn("Could not determine cascade data format")
-        if (is.list(cascade_data)) {
-          log_info(paste("Available elements:", paste(names(cascade_data), collapse = ", ")))
-        }
-        return(NULL)
+        log_info("Returning cascade data from reactive context: {nrow(project_data$cleaned_data$cascade)} rows, {ncol(project_data$cleaned_data$cascade)} columns")
+        return(project_data$cleaned_data$cascade)
       })
 
       # Reactive expression to check data status
@@ -636,13 +649,13 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         paste0("Data Status:\n", align_status, dyn_status, casc_status)
       })
 
-      # Initialize reactive values for analysis results with default values
-      # rv_analysis <- reactiveValues(
-      #   ... fields ...
-      # )
       # Log the initialization of reactive values
-      log_info("Initialized rv_analysis with keys: ", 
-               paste(names(reactiveValuesToList(rv_analysis)), collapse = ", "))
+      observe({
+        log_info(
+          "Initialized project_data$analysis with keys: ",
+          paste(names(project_data$analysis), collapse = ", ")
+        )
+      })
 
       # Run analysis observer - handles the unified run_analysis button
       observeEvent(input$run_analysis, {
@@ -663,33 +676,31 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
 
         # Debug: Check what data is available
         log_info("=== DATA AVAILABILITY CHECK ===")
-        if (!is.null(ns_project)) {
-          log_info("ns_project is available")
-          log_info("Available elements in ns_project: {paste(names(ns_project), collapse = ', ')}")
+        log_info("Checking project data availability...")
 
-          if (!is.null(ns_project$alignment_data)) {
-            log_info("Alignment data available: {nrow(ns_project$alignment_data)} rows, {ncol(ns_project$alignment_data)} columns")
-          } else {
-            log_warn("No alignment data in ns_project")
-          }
+        # Check alignment data
+        if (!is.null(project_data$cleaned_data$alignment)) {
+          log_info("Alignment data available: {nrow(project_data$cleaned_data$alignment)} rows, {ncol(project_data$cleaned_data$alignment)} columns")
+        } else {
+          log_warn("No alignment data available")
+        }
 
-          if (!is.null(ns_project$dynamics_data)) {
-            log_info("Dynamics data available: {nrow(ns_project$dynamics_data)} rows, {ncol(ns_project$dynamics_data)} columns")
-          } else {
-            log_warn("No dynamics data in ns_project")
-          }
+        # Check dynamics data
+        if (!is.null(project_data$cleaned_data$dynamics)) {
+          log_info("Dynamics data available: {nrow(project_data$cleaned_data$dynamics)} rows, {ncol(project_data$cleaned_data$dynamics)} columns")
+        } else {
+          log_warn("No dynamics data available")
+        }
 
-          if (!is.null(ns_project$cascade_data)) {
-            if (is.list(ns_project$cascade_data)) {
-              log_info("Cascade data available: list with elements: {paste(names(ns_project$cascade_data), collapse = ', ')}")
-            } else {
-              log_info("Cascade data available: {class(ns_project$cascade_data)}")
-            }
+        # Check cascade data
+        if (!is.null(project_data$cleaned_data$cascade)) {
+          if (is.list(project_data$cleaned_data$cascade)) {
+            log_info("Cascade data available: list with elements: {paste(names(project_data$cleaned_data$cascade), collapse = ', ')}")
           } else {
-            log_warn("No cascade data in ns_project")
+            log_info("Cascade data available: {class(project_data$cleaned_data$cascade)}")
           }
         } else {
-          log_warn("ns_project is NULL")
+          log_warn("No cascade data available")
         }
         log_info("=== END DATA AVAILABILITY CHECK ===")
 
@@ -709,18 +720,16 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         # Reset progress bar
         shinyWidgets::updateProgressBar(
           session = session,
-          id = "progress_bar",
-          value = 100,
-          status = "success"
+          id = ns("progress_bar"),
+          value = 0,
+          status = "info"
         )
 
-        # Hide the progress container after a short delay
-        shinyjs::delay(1000, {
-          shinyjs::runjs(sprintf('document.getElementById("%s").style.visibility = "hidden";', ns("progress_container")))
-        })
+        # Show the progress container
+        shinyjs::runjs(sprintf('document.getElementById("%s").style.visibility = "visible";', ns("progress_container")))
 
         # Helper function to run analysis with common error handling and progress updates
-        run_analysis <- function(analysis_type, data_func, analysis_func, rv_list, progress_stages, extra_processing = NULL) {
+        run_analysis <- function(analysis_type, data_func, analysis_func, progress_stages, extra_processing = NULL) {
           log_info(paste("Running", analysis_type, "analysis..."))
 
           # Get the data reactively
@@ -757,85 +766,33 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
                 extra_processing(result, data)
               }
 
-              # Store results in reactive values with detailed logging
+              # Store results in project_data$analysis directly
               log_info(paste("Storing results for", analysis_type, "analysis"))
               log_info(paste("Result keys available:", paste(names(result), collapse = ", ")))
-              
-              # First, log the current state of the reactive values
-              log_info("Current rv_analysis state:")
-              log_info(paste("- alignment_analyzed:", rv_analysis$alignment_analyzed))
-              log_info(paste("- dynamics_analyzed:", rv_analysis$dynamics_analyzed))
-              log_info(paste("- cascade_analyzed:", rv_analysis$cascade_analyzed))
-              
-              # Use isolate to batch reactive updates
-              isolate({
-                # Store each result with the analysis_type prefix
-                for (name in names(result)) {
-                  key <- paste0(analysis_type, "_", name)
-                  log_info(paste("Setting", key, "to:", toString(result[[name]])))
-                  rv_list[[key]] <- result[[name]]
-                }
-                # --- NEW: Also set generic keys for UI compatibility ---
-                if (analysis_type == "alignment") {
-                  if ("alignment_score" %in% names(result)) rv_list$alignment_score <- result$alignment_score
-                  if ("alignment_medians" %in% names(result)) rv_list$alignment_medians <- result$alignment_medians
-                  if ("icc_scores" %in% names(result)) rv_list$icc_scores <- result$icc_scores
-                }
-                if (analysis_type == "dynamics") {
-                  if ("dynamics_score" %in% names(result)) rv_list$dynamics_score <- result$dynamics_score
-                  if ("domain_df" %in% names(result)) rv_list$dynamics_results <- result$domain_df
-                  if ("dynamics_df" %in% names(result)) rv_list$full_results <- result$dynamics_df
 
-                  # --- BEGIN: Dimension Scores Calculation (using ns_project$dynamics_data) ---
-                  if (is.data.frame(ns_project$dynamics_data) &&
-                      all(c("weight", "salience") %in% names(ns_project$dynamics_data))) {
-                    library(dplyr)
-                    dimension_scores <- ns_project$dynamics_data %>%
-                      mutate(descriptor_score = weight * salience) %>%
-                      group_by(domain, dimension) %>%
-                      mutate(full_weight = descriptor_score / sum(descriptor_score, na.rm = TRUE)) %>%
-                      mutate(dimension_score = sum(descriptor_score * full_weight, na.rm = TRUE) / sum(full_weight, na.rm = TRUE)) %>%
-                      ungroup() %>%
-                      select(domain, dimension, dimension_score) %>%
-                      distinct(domain, dimension, .keep_all = TRUE)
-                    rv_list$dimension_scores <- dimension_scores
-                    # Debug print/log
-                    message("==== [DEBUG] dimension_scores just set in mod_analyze ====")
-                    print(str(dimension_scores))
-                    print(head(dimension_scores))
-                    if (nrow(dimension_scores) == 0) message("[DEBUG] dimension_scores is EMPTY after calculation!")
-                  } else {
-                    rv_list$dimension_scores <- NULL
-                    message("[DEBUG] dimension_scores set to NULL (missing required columns or not a data.frame)")
-                  }
-                  # --- END: Dimension Scores Calculation ---
+              # Prepare all values to set
+              values_to_set <- list()
+
+              # Store each result with the analysis_type prefix
+              for (name in names(result)) {
+                key <- paste0(analysis_type, "_", name)
+                log_info(paste("Will set", key, "to:", toString(utils::head(result[[name]]))))
+                values_to_set[[key]] <- result[[name]]
+              }
+
+              # Add the analyzed flag
+              analyzed_key <- paste0(analysis_type, "_analyzed")
+              values_to_set[[analyzed_key]] <- TRUE
+
+              # Add last updated timestamp
+              values_to_set$last_updated <- Sys.time()
+              values_to_set$last_analysis_type <- analysis_type
+
+              # Update all reactive values in a single isolate block
+              isolate({
+                for (name in names(values_to_set)) {
+                  project_data$analysis[[name]] <- values_to_set[[name]]
                 }
-                if (analysis_type == "cascade") {
-                  if ("cascade_score" %in% names(result)) rv_list$cascade_score <- result$cascade_score
-                  if ("cascade_df" %in% names(result)) rv_list$cascade_results <- result$cascade_df
-                }
-                
-                # Set the analyzed flag
-                analyzed_key <- paste0(analysis_type, "_analyzed")
-                log_info(paste("Setting", analyzed_key, "to TRUE"))
-                rv_list[[analyzed_key]] <- TRUE
-                
-                # Special handling for dynamics to store full results
-                if (analysis_type == "dynamics") {
-                  log_info("Storing full dynamics results")
-                  rv_list$full_results <- data
-                }
-                
-                # Update debug info
-                rv_list$last_updated <- Sys.time()
-                rv_list$last_analysis_type <- analysis_type
-                
-                # Log the final state of the reactive values
-                log_info("Updated rv_analysis state:")
-                log_info(paste("- alignment_analyzed:", rv_analysis$alignment_analyzed))
-                log_info(paste("- dynamics_analyzed:", rv_analysis$dynamics_analyzed))
-                log_info(paste("- cascade_analyzed:", rv_analysis$cascade_analyzed))
-                log_info("All rv_analysis keys:", paste(names(reactiveValuesToList(rv_analysis)), collapse = ", "))
               })
 
               update_progress(progress_stages$complete, "Analysis Complete")
@@ -885,152 +842,654 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         }
 
         # Run the appropriate analysis based on selection
-        switch(input$analysis_type,
-          "alignment" = {
-            run_analysis(
-              analysis_type = "alignment",
-              data_func = alignment_data,
-              analysis_func = centrimpact::analyze_alignment,
-              rv_list = rv_analysis,
-              progress_stages = list(
-                start = 30,
-                start_msg = "Reading alignment data...",
-                analyze = 50,
-                analyze_msg = "Analyzing alignment...",
-                complete = 100
+        # DRY helper functions for analysis
+        #' Run alignment analysis
+        #' 
+        #' @param alignment_data Data frame containing alignment data with required columns: role, alignment, rating
+        #' @return A list containing analysis results with elements: score, table, icc, and analyzed flag
+        #' @export
+        run_alignment_analysis <- function(alignment_data) {
+          logger::log_info("[@mod_analyze.R] Running alignment analysis")
+          
+          # Input validation
+          if (is.null(alignment_data)) {
+            stop("No alignment data available")
+          }
+          
+          if (!is.data.frame(alignment_data)) {
+            stop(paste("Alignment data must be a data frame, got:", class(alignment_data)))
+          }
+          
+          if (nrow(alignment_data) == 0) {
+            stop("Alignment data is empty")
+          }
+          
+          # Check for required columns
+          required_cols <- c("role", "alignment", "rating")
+          missing_cols <- setdiff(required_cols, names(alignment_data))
+          if (length(missing_cols) > 0) {
+            stop(paste("Alignment data is missing required columns: ", 
+                      paste(missing_cols, collapse = ", ")))
+          }
+          
+          # Check for data quality
+          if (all(is.na(alignment_data$rating))) {
+            stop("All rating values are NA - cannot perform analysis")
+          }
+          
+          tryCatch({
+            # Run the analysis
+            analysis_result <- centrimpact::analyze_alignment(alignment_df = alignment_data)
+            
+            # Validate the result
+            if (is.null(analysis_result)) {
+              stop("analyze_alignment returned NULL")
+            }
+            
+            # Log the result structure for debugging
+            logger::log_info("Analysis result type: {class(analysis_result)}")
+            logger::log_info("Analysis result length: {length(analysis_result)}")
+            
+            # Initialize result structure
+            result <- list(
+              score = NULL,
+              table = data.frame(),
+              icc = NA_real_,
+              analyzed = TRUE,
+              timestamp = Sys.time()
+            )
+            
+            # Handle different result structures
+            if (is.atomic(analysis_result)) {
+              # If it's an atomic vector, treat it as the alignment score
+              result$score <- as.numeric(analysis_result[1])
+            } else if (is.list(analysis_result)) {
+              # Extract components from list result
+              result$score <- if (!is.null(analysis_result$alignment_score)) {
+                as.numeric(analysis_result$alignment_score[1])
+              } else if (length(analysis_result) > 0) {
+                as.numeric(analysis_result[[1]])
+              }
+              
+              result$table <- if (!is.null(analysis_result$alignment_medians)) {
+                as.data.frame(analysis_result$alignment_medians)
+              } else {
+                data.frame()
+              }
+              
+              result$icc <- if (!is.null(analysis_result$icc_score)) {
+                as.numeric(analysis_result$icc_score[1])
+              } else {
+                NA_real_
+              }
+            }
+            
+            # Validate we have a score
+            if (is.null(result$score) || is.na(result$score)) {
+              stop("Could not determine alignment score from analysis result")
+            }
+            
+            logger::log_info("Alignment analysis completed successfully")
+            logger::log_info("Alignment score: {result$score}")
+            if (!is.na(result$icc)) {
+              logger::log_info("ICC score: {result$icc}")
+            }
+            
+            return(result)
+            
+          }, error = function(e) {
+            logger::log_error("[@mod_analyze.R] Error in alignment analysis: {conditionMessage(e)}")
+            stop(e) # Re-throw the error to be handled by the caller
+          })
+        }
+
+        #' Run dynamics analysis
+        #' 
+        #' @param dynamics_data Data frame containing dynamics data with required columns: role, domain, dimension, rating
+        #' @return A list containing analysis results with elements: score, domains, dynamics, and analyzed flag
+        #' @export
+        run_dynamics_analysis <- function(dynamics_data) {
+          logger::log_info("[@mod_analyze.R] Running dynamics analysis")
+          
+          # Input validation
+          if (is.null(dynamics_data)) {
+            stop("No dynamics data available")
+          }
+          
+          if (!is.data.frame(dynamics_data)) {
+            stop(paste("Dynamics data must be a data frame, got:", class(dynamics_data)))
+          }
+          
+          if (nrow(dynamics_data) == 0) {
+            stop("Dynamics data is empty")
+          }
+          
+          # Check for required columns
+          required_cols <- c("role", "domain", "dimension", "rating")
+          missing_cols <- setdiff(required_cols, names(dynamics_data))
+          if (length(missing_cols) > 0) {
+            stop(paste("Dynamics data is missing required columns: ", 
+                      paste(missing_cols, collapse = ", ")))
+          }
+          
+          # Check for data quality
+          if (all(is.na(dynamics_data$rating))) {
+            stop("All rating values are NA - cannot perform analysis")
+          }
+          
+          tryCatch({
+            # Run the analysis
+            analysis_result <- centrimpact::analyze_dynamics(dynamics_df = dynamics_data)
+            
+            # Validate the result
+            if (is.null(analysis_result)) {
+              stop("analyze_dynamics returned NULL")
+            }
+            
+            # Log the result structure for debugging
+            logger::log_info("Dynamics result type: {class(analysis_result)}")
+            logger::log_info("Dynamics result length: {length(analysis_result)}")
+            
+            # Initialize result structure
+            result <- list(
+              score = NULL,
+              domains = data.frame(),
+              dynamics = data.frame(),
+              analyzed = TRUE,
+              timestamp = Sys.time()
+            )
+            
+            # Handle different result structures
+            if (is.atomic(analysis_result)) {
+              # If it's an atomic vector, treat it as the dynamics score
+              result$score <- as.numeric(analysis_result[1])
+            } else if (is.list(analysis_result)) {
+              # Extract components from list result
+              result$score <- if (!is.null(analysis_result$dynamics_score)) {
+                as.numeric(analysis_result$dynamics_score[1])
+              } else if (length(analysis_result) > 0) {
+                as.numeric(analysis_result[[1]])
+              }
+              
+              result$domains <- if (!is.null(analysis_result$domain_df)) {
+                as.data.frame(analysis_result$domain_df)
+              } else {
+                data.frame()
+              }
+              
+              result$dynamics <- if (!is.null(analysis_result$dynamics_df)) {
+                as.data.frame(analysis_result$dynamics_df)
+              } else {
+                data.frame()
+              }
+            }
+            
+            # Validate we have a score
+            if (is.null(result$score) || is.na(result$score)) {
+              stop("Could not determine dynamics score from analysis result")
+            }
+            
+            logger::log_info("Dynamics analysis completed successfully")
+            logger::log_info("Dynamics score: {result$score}")
+            
+            return(result)
+            
+          }, error = function(e) {
+            logger::log_error("[@mod_analyze.R] Error in dynamics analysis: {conditionMessage(e)}")
+            stop(e) # Re-throw the error to be handled by the caller
+          })
+        }  
+        
+
+        # Helper function to validate and prepare cascade input
+        prepare_cascade_input <- function(cascade_raw) {
+          cascade_input <- NULL
+          
+          if (is.list(cascade_raw) && !is.null(cascade_raw$edges)) {
+            # If it's a list with edges, extract the edgelist
+            cascade_input <- cascade_raw$edges
+            logger::log_info("Extracted cascade edgelist from input data")
+          } else if (is.data.frame(cascade_raw)) {
+            # If it's already a data frame, use it directly
+            cascade_input <- cascade_raw
+            logger::log_info("Using cascade input as is (data frame)")
+          }
+          
+          # Validate the input
+          if (is.null(cascade_input)) {
+            stop("Cascade data must be a data frame (edgelist) or list containing 'edges' element")
+          }
+          
+          # Check for required columns if it's a data frame
+          if (is.data.frame(cascade_input)) {
+            required_cols <- c("from", "to", "weight")
+            missing_cols <- setdiff(required_cols, names(cascade_input))
+            if (length(missing_cols) > 0) {
+              stop("Cascade edgelist is missing required columns: ", 
+                   paste(missing_cols, collapse = ", "))
+            }
+          }
+          
+          return(cascade_input)
+        }
+        
+        #' Run cascade analysis
+        #' 
+        #' @param cascade_data Data frame containing cascade data with required columns: from, to, weight
+        #' @return A list containing analysis results with elements: score, data, and analyzed flag
+        #' @export
+        run_cascade_analysis <- function(cascade_data) {
+          logger::log_info("[@mod_analyze.R] Running cascade analysis")
+          
+          # Validate input
+          if (is.null(cascade_data)) {
+            stop("No cascade data provided")
+          }
+          
+          # Prepare and validate cascade input
+          cascade_input <- tryCatch(
+            {
+              prepare_cascade_input(cascade_data)
+            },
+            error = function(e) {
+              logger::log_error("Error preparing cascade input: {e$message}")
+              stop(e)
+            }
+          )
+          
+          # Run the analysis with error handling
+          tryCatch({
+            logger::log_info("Running centrimpact::analyze_cascade...")
+            analysis_result <- centrimpact::analyze_cascade(cascade_input)
+            
+            # Validate the result
+            if (is.null(analysis_result)) {
+              stop("analyze_cascade returned NULL")
+            }
+            
+            # Log the result structure for debugging
+            logger::log_info("Cascade result type: {class(analysis_result)}")
+            logger::log_info("Cascade result length: {length(analysis_result)}")
+            
+            # Initialize result structure
+            result <- list(
+              score = NULL,
+              data = data.frame(),
+              analyzed = TRUE,
+              timestamp = Sys.time()
+            )
+            
+            # Handle different result structures
+            if (is.atomic(analysis_result)) {
+              # If it's an atomic vector, treat it as the cascade score
+              result$score <- as.numeric(analysis_result[1])
+            } else if (is.list(analysis_result)) {
+              # Extract components from list result
+              result$score <- if (!is.null(analysis_result$cascade_score)) {
+                as.numeric(analysis_result$cascade_score[1])
+              } else if (length(analysis_result) > 0) {
+                as.numeric(analysis_result[[1]])
+              }
+              
+              result$data <- if (!is.null(analysis_result$cascade_df)) {
+                as.data.frame(analysis_result$cascade_df)
+              } else {
+                data.frame()
+              }
+            }
+            
+            # Validate we have a score
+            if (is.null(result$score) || is.na(result$score)) {
+              stop("Could not determine cascade score from analysis result")
+            }
+            
+            logger::log_info("Cascade analysis completed successfully")
+            logger::log_info("Cascade score: {result$score}")
+            
+            return(result)
+            
+          }, error = function(e) {
+            logger::log_error("[@mod_analyze.R] Error in cascade analysis: {conditionMessage(e)}")
+            stop(e) # Re-throw the error to be handled by the caller
+          })
+        }
+
+        # Run the appropriate analysis based on type
+        analysis_result <- tryCatch({
+          switch(input$analysis_type,
+            "alignment" = {
+              logger::log_info("Starting alignment analysis")
+              result <- run_alignment_analysis(alignment_data())
+              
+              # Store results in reactive values
+              isolate({
+                project_data$analysis$alignment_score <- result$score
+                project_data$analysis$alignment_table <- result$table
+                project_data$analysis$alignment_icc <- result$icc
+                project_data$analysis$alignment_analyzed <- TRUE
+                project_data$analysis$last_analysis_type <- "alignment"
+                project_data$analysis$last_updated <- Sys.time()
+              })
+              
+              logger::log_info("Alignment analysis completed successfully")
+              return(TRUE)
+            },
+            "dynamics" = {
+              logger::log_info("Starting dynamics analysis")
+              result <- run_dynamics_analysis(dynamics_data())
+              
+              # Store results in reactive values
+              isolate({
+                project_data$analysis$dynamics_score <- result$score
+                project_data$analysis$dynamics_domains <- result$domains
+                project_data$analysis$dynamics_dynamics <- result$dynamics
+                project_data$analysis$dynamics_analyzed <- TRUE
+                project_data$analysis$last_analysis_type <- "dynamics"
+                project_data$analysis$last_updated <- Sys.time()
+              })
+              
+              logger::log_info("Dynamics analysis completed successfully")
+              return(TRUE)
+            },
+            "cascade" = {
+              logger::log_info("Starting cascade analysis")
+              result <- run_cascade_analysis(cascade_data())
+              
+              # Store results in reactive values
+              isolate({
+                project_data$analysis$cascade_score <- result$score
+                project_data$analysis$cascade_data <- result$data
+                project_data$analysis$cascade_analyzed <- TRUE
+                project_data$analysis$last_analysis_type <- "cascade"
+                project_data$analysis$last_updated <- Sys.time()
+              })
+              
+              logger::log_info("Cascade analysis completed successfully")
+              return(TRUE)
+            },
+            "full" = {
+              logger::log_info("Starting full analysis")
+              shinyjs::runjs(sprintf('document.getElementById("%s").classList.add("loading");', ns("run_analysis")))
+            tryCatch({
+              result <- tryCatch(
+                {
+                  # Get the cascade data
+                  cascade_raw <- cascade_data()
+                  if (is.null(cascade_raw)) {
+                    stop("No cascade data available. Please load data first.")
+                  }
+                  
+                  # Log data structure for debugging
+                  logger::log_info("Cascade data structure: {class(cascade_raw)}")
+                  if (is.list(cascade_raw)) {
+                    logger::log_info("Cascade data keys: {paste(names(cascade_raw), collapse = ', ')}")
+                  }
+                  
+                  # Run the analysis with the full cascade data
+                  # The run_cascade_analysis function will handle extracting the edgelist
+                  out <- run_cascade_analysis(cascade_raw, project_data$analysis)
+                  
+                  # The cascade_analyzed flag is set inside run_cascade_analysis
+                  out
+                },
+                error = function(e) {
+                  logger::log_error("[@mod_analyze.R] Error in cascade analysis")
+                  return(FALSE)
+                }
               )
-            )
-          },
-          "dynamics" = {
-            run_analysis(
-              analysis_type = "dynamics",
-              data_func = dynamics_data,
-              analysis_func = centrimpact::analyze_dynamics,
-              rv_list = rv_analysis,
-              progress_stages = list(
-                start = 30,
-                start_msg = "Reading dynamics data...",
-                analyze = 50,
-                analyze_msg = "Analyzing dynamics...",
-                complete = 100
-              ),
-              extra_processing = process_dynamics_result
-            )
-          },
-          "cascade" = {
-            run_analysis(
-              analysis_type = "cascade",
-              data_func = cascade_data,
-              analysis_func = centrimpact::analyze_cascade,
-              rv_list = rv_analysis,
-              progress_stages = list(
-                start = 30,
-                start_msg = "Constructing social network model...",
-                analyze = 50,
-                analyze_msg = "Analyzing cascade effects...",
-                complete = 100
-              )
-            )
+              if (!result) {
+                showNotification("Error in cascade analysis. Check logs for details.", type = "error")
+                return()
+              }
+              showNotification("Cascade analysis completed successfully!", type = "message")
+            }, error = function(e) {
+              logger::log_error("[@mod_analyze.R] Error in cascade analysis")
+              showNotification(paste("Error:", conditionMessage(e)), type = "error")
+            }, finally = {
+              shinyjs::runjs(sprintf('document.getElementById("%s").classList.remove("loading");', ns("run_analysis")))
+            })
           },
           "full" = {
             log_info("Running full analysis...")
-            tryCatch(
-              {
-                # Run alignment analysis
-                update_progress(10, "Starting alignment analysis...")
-
-                # Run alignment analysis
-                align_success <- run_analysis(
-                  analysis_type = "alignment",
-                  data_func = alignment_data,
-                  analysis_func = centrimpact::analyze_alignment,
-                  rv_list = rv_analysis,
-                  progress_stages = list(
-                    start = 20,
-                    start_msg = "Running alignment analysis...",
-                    analyze = 30,
-                    analyze_msg = "Analyzing alignment...",
-                    complete = 30
-                  )
+            shinyjs::runjs(sprintf('document.getElementById("%s").classList.add("loading");', ns("run_analysis")))
+            
+            # Initialize progress tracking
+            total_steps <- 3  # Total number of analysis steps
+            current_step <- 0
+            
+            tryCatch({
+              all_success <- TRUE
+              
+              # Run alignment analysis if data is available
+              if (!is.null(alignment_data())) {
+                current_step <- current_step + 1
+                update_progress(
+                  value = (current_step - 1) / total_steps * 100,
+                  text = sprintf("Running alignment analysis (%d/%d)...", current_step, total_steps),
+                  detail = "Analyzing alignment between project components..."
                 )
-
-                if (!align_success) stop("Alignment analysis failed")
-
-                # Run dynamics analysis
-                update_progress(40, "Starting dynamics analysis...")
-
-                dynamics_success <- run_analysis(
-                  analysis_type = "dynamics",
-                  data_func = dynamics_data,
-                  analysis_func = centrimpact::analyze_dynamics,
-                  rv_list = rv_analysis,
-                  progress_stages = list(
-                    start = 50,
-                    start_msg = "Running dynamics analysis...",
-                    analyze = 60,
-                    analyze_msg = "Analyzing dynamics...",
-                    complete = 60
-                  ),
-                  extra_processing = process_dynamics_result
-                )
-
-                if (!dynamics_success) stop("Dynamics analysis failed")
-
-                # Run cascade analysis
-                update_progress(65, "Starting cascade analysis...")
-
-                cascade_success <- run_analysis(
-                  analysis_type = "cascade",
-                  data_func = cascade_data,
-                  analysis_func = centrimpact::analyze_cascade,
-                  rv_list = rv_analysis,
-                  progress_stages = list(
-                    start = 70,
-                    start_msg = "Running cascade analysis...",
-                    analyze = 85,
-                    analyze_msg = "Constructing social network model...",
-                    complete = 90
-                  )
-                )
-
-                if (!cascade_success) stop("Cascade analysis failed")
-
-                update_progress(95, "Finalizing...")
-                shinyjs::delay(250, {
-                  update_progress(100, "Analysis Complete")
-                  shinyjs::delay(1000, {
-                    update_progress(0, "Ready to Analyze")
+                
+                tryCatch({
+                  result <- run_alignment_analysis(alignment_data())
+                  
+                  # Store results in reactive values
+                  isolate({
+                    project_data$analysis$alignment_score <- result$score
+                    project_data$analysis$alignment_table <- result$table
+                    project_data$analysis$alignment_icc <- result$icc
+                    project_data$analysis$alignment_analyzed <- TRUE
+                    project_data$analysis$last_analysis_type <- "alignment"
+                    project_data$analysis$last_updated <- Sys.time()
                   })
+                  
+                  showNotification(
+                    "Alignment analysis completed successfully!",
+                    type = "message"
+                  )
+                }, error = function(e) {
+                  all_success <- FALSE
+                  logger::log_error("Error in alignment analysis: {e$message}")
+                  showNotification(
+                    "Alignment analysis failed. Check logs for details.",
+                    type = "error"
+                  )
                 })
-              },
-              error = function(e) {
-                log_error("Error during full analysis: {conditionMessage(e)}")
-                update_progress(100, "Error: Analysis Failed", status = "danger")
+              } else {
+                log_warn("Skipping alignment analysis: no data available")
+                update_progress(
+                  value = (1 / total_steps) * 100,
+                  text = "Skipped alignment analysis (no data)",
+                  status = "warning"
+                )
               }
-            )
+              
+              # Run dynamics analysis if data is available
+              if (!is.null(dynamics_data())) {
+                current_step <- current_step + 1
+                update_progress(
+                  value = (current_step - 1) / total_steps * 100,
+                  text = sprintf("Running dynamics analysis (%d/%d)...", current_step, total_steps),
+                  detail = "Analyzing project dynamics..."
+                )
+                
+                tryCatch({
+                  result <- run_dynamics_analysis(dynamics_data())
+                  
+                  # Store results in reactive values
+                  isolate({
+                    project_data$analysis$dynamics_score <- result$score
+                    project_data$analysis$dynamics_domains <- result$domains
+                    project_data$analysis$dynamics_dynamics <- result$dynamics
+                    project_data$analysis$dynamics_analyzed <- TRUE
+                    project_data$analysis$last_analysis_type <- "dynamics"
+                    project_data$analysis$last_updated <- Sys.time()
+                  })
+                  
+                  showNotification(
+                    "Dynamics analysis completed successfully!",
+                    type = "message"
+                  )
+                }, error = function(e) {
+                  all_success <- FALSE
+                  logger::log_error("Error in dynamics analysis: {e$message}")
+                  showNotification(
+                    "Dynamics analysis failed. Check logs for details.",
+                    type = "error"
+                  )
+                })
+              } else {
+                log_warn("Skipping dynamics analysis: no data available")
+                update_progress(
+                  value = (2 / total_steps) * 100,
+                  text = "Skipped dynamics analysis (no data)",
+                  status = "warning"
+                )
+              }
+              
+              # Run cascade analysis if data is available
+              if (!is.null(cascade_data())) {
+                current_step <- current_step + 1
+                update_progress(
+                  value = (current_step - 1) / total_steps * 100,
+                  text = sprintf("Running cascade analysis (%d/%d)...", current_step, total_steps),
+                  detail = "Analyzing cascade effects..."
+                )
+                
+                tryCatch({
+                  result <- run_cascade_analysis(cascade_data())
+                  
+                  # Store results in reactive values
+                  isolate({
+                    project_data$analysis$cascade_score <- result$score
+                    project_data$analysis$cascade_data <- result$data
+                    project_data$analysis$cascade_analyzed <- TRUE
+                    project_data$analysis$last_analysis_type <- "cascade"
+                    project_data$analysis$last_updated <- Sys.time()
+                  })
+                  
+                  showNotification(
+                    "Cascade analysis completed successfully!",
+                    type = "message"
+                  )
+                }, error = function(e) {
+                  all_success <- FALSE
+                  logger::log_error("Error in cascade analysis: {e$message}")
+                  showNotification(
+                    "Cascade analysis failed. Check logs for details.",
+                    type = "error"
+                  )
+                })
+              } else {
+                log_warn("Skipping cascade analysis: no data available")
+                update_progress(
+                  value = 100,
+                  text = "Skipped cascade analysis (no data)",
+                  status = "warning"
+                )
+              }
+
+              # Final update
+              if (all_success) {
+                update_progress(
+                  value = 100,
+                  text = "All analyses completed successfully!",
+                  status = "success"
+                )
+                showNotification("All analyses completed successfully!", type = "message")
+              } else {
+                log_warn("Some analyses in the full analysis failed")
+                update_progress(
+                  value = 100,
+                  text = "Some analyses completed with errors. Check logs for details.",
+                  status = "warning"
+                )
+                showNotification(
+                  "Some analyses in the full analysis failed. Check logs for details.",
+                  type = "warning"
+                )
+              }
+            }, error = function(e) {
+              log_error(paste("Error in full analysis:", conditionMessage(e)))
+              showNotification(
+                paste("Error in full analysis:", conditionMessage(e)),
+                type = "error"
+              )
+            }, finally = {
+              shinyjs::runjs(sprintf('document.getElementById("%s").classList.remove("loading");', ns("run_analysis")))
+            })
           }
         )
       })
 
-      get_level_info <- function(score, type = "domain") {
-        if (score >= 0.8) {
-          list(
-            color = "#4E342E", # Rich Espresso
-            level = "Highly Developed",
-            bg_color = "#ECE7E2" # Lightened coffee cream
-          )
-        } else if (score >= 0.6) {
-          list(
-            color = "#A64B42", # Rust Red
-            level = "Well Developed",
-            bg_color = "#F7EDEB"
-          )
-        } else if (score >= 0.4) {
-          list(
-            color = "#BC7A5A", # Muted Terracotta
-            level = "Developing",
-            bg_color = "#FAF1ED"
-          )
+      # Helper function to get score styling with validation and fallbacks
+      get_score_style <- function(score, scale = 5) {
+        # Handle NA/NaN/Inf values
+        if (is.null(score) || is.na(score) || is.nan(score) || is.infinite(score)) {
+          return(list(color = "#6c757d", level = "N/A"))
+        }
+        
+        # Ensure score is numeric
+        score <- as.numeric(score)
+        
+        # Handle invalid scores
+        if (is.na(score) || is.nan(score) || is.infinite(score)) {
+          return(list(color = "#6c757d", level = "N/A"))
+        }
+        
+        # 5-point scale colors and levels (default)
+        if (scale == 5) {
+          if (score >= 0.8) return(list(color = "#28a745", level = "High"))
+          if (score >= 0.6) return(list(color = "#5cb85c", level = "Good"))
+          if (score >= 0.4) return(list(color = "#ffc107", level = "Moderate"))
+          if (score >= 0.2) return(list(color = "#fd7e14", level = "Low"))
+          return(list(color = "#dc3545", level = "Very Low"))
+        }
+        
+        # 10-point scale colors and levels
+        if (scale == 10) {
+          if (score >= 9) return(list(color = "#28a745", level = "Excellent"))
+          if (score >= 7) return(list(color = "#5cb85c", level = "Very Good"))
+          if (score >= 5) return(list(color = "#ffc107", level = "Good"))
+          if (score >= 3) return(list(color = "#fd7e14", level = "Fair"))
+          return(list(color = "#dc3545", level = "Poor"))
+        }
+        
+        # Default to 5-point scale for unknown scales
+        if (score >= 0.8) return(list(color = "#28a745", level = "High"))
+        if (score >= 0.6) return(list(color = "#5cb85c", level = "Good"))
+        if (score >= 0.4) return(list(color = "#ffc107", level = "Moderate"))
+        if (score >= 0.2) return(list(color = "#fd7e14", level = "Low"))
+        return(list(color = "#dc3545", level = "Very Low"))
+      }
+      get_score_style <- function(score, scale = 5) {
+        if (scale == 5) {
+          # 5-point scale colors and levels
+          if (is.na(score)) {
+            return(list(color = "#6c757d", level = "N/A"))
+          } else if (score >= 4.5) {
+            return(list(color = "#4E342E", level = "High")) # Rich Espresso
+          } else if (score >= 3.5) {
+            return(list(color = "#A64B42", level = "Medium-High")) # Rust Red
+          } else if (score >= 2.5) {
+            return(list(color = "#BC7A5A", level = "Medium")) # Muted Terracotta
+          } else if (score >= 1.5) {
+            return(list(color = "#3F5E78", level = "Medium-Low")) # Denim Blue
+          } else {
+            return(list(color = "#6B6459", level = "Low")) # Stone Grey-Brown
+          }
+        } else if (scale == 4) {
+          # 4-point scale colors and levels
+          if (is.na(score)) {
+            return(list(color = "#6c757d", level = "N/A", bg_color = "#f8f9fa"))
+          } else if (score >= 3.5) {
+            return(list(color = "#4E342E", level = "High", bg_color = "#f5e8e4")) # Rich Espresso
+          } else if (score >= 2.5) {
+            return(list(color = "#A64B42", level = "Medium-High", bg_color = "#f8e9e7")) # Rust Red
+          } else if (score >= 1.5) {
+            return(list(color = "#BC7A5A", level = "Medium", bg_color = "#faf1ed")) # Muted Terracotta
+          } else {
+            return(list(color = "#3F5E78", level = "Low", bg_color = "#f0f4f8")) # Denim Blue
+          }
         } else if (score >= 0.2) {
           list(
             color = "#3F5E78", # Denim Blue
@@ -1089,262 +1548,405 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         return(0.0)
       }
 
+      # Helper function to safely get score from analysis results with detailed logging
+      safe_get_score <- function(analysis_type, score_key) {
+        log_info("=== DEBUG: safe_get_score called ===")
+        log_info(paste("Analysis type:", analysis_type))
+        log_info(paste("Score key:", score_key))
+        
+        # Safely get the analysis result
+        analysis_result <- NULL
+        if (exists("project_data") && !is.null(project_data$analysis)) {
+          analysis_result <- project_data$analysis[[analysis_type]]
+        }
+        
+        # Debug: Log the type and structure of the analysis result
+        if (!is.null(analysis_result)) {
+          log_info(paste("Analysis result type:", class(analysis_result)))
+          if (is.list(analysis_result)) {
+            log_info(paste("Analysis result keys:", paste(names(analysis_result), collapse = ", ")))
+          } else if (is.atomic(analysis_result)) {
+            log_info(paste("Atomic value:", paste(analysis_result, collapse = ", ")))
+          }
+        } else {
+          log_info(paste("No analysis result found for type:", analysis_type))
+        }
+        
+        # Function to safely extract numeric value from an object
+        safe_extract_numeric <- function(x) {
+          if (is.null(x)) return(NA)
+          if (is.numeric(x)) return(as.numeric(x[1]))
+          if (is.character(x)) {
+            num_val <- suppressWarnings(as.numeric(x))
+            if (!is.na(num_val)) return(num_val)
+          }
+          if (is.list(x) && "value" %in% names(x)) {
+            return(safe_extract_numeric(x$value))
+          }
+          return(NA)
+        }
+        
+        # 1. First try to get the score from the flat structure (backward compatibility)
+        flat_key <- paste0(analysis_type, "_", score_key)
+        if (exists("project_data") && !is.null(project_data$analysis[[flat_key]])) {
+          score <- safe_extract_numeric(project_data$analysis[[flat_key]])
+          if (!is.na(score)) {
+            log_info(paste("Found score in flat structure:", score))
+            return(score)
+          }
+        }
+        
+        # 2. Try direct access in the analysis result
+        if (!is.null(analysis_result)) {
+          # Handle atomic vectors (single values)
+          if (is.atomic(analysis_result) && length(analysis_result) == 1) {
+            score <- safe_extract_numeric(analysis_result)
+            if (!is.na(score)) {
+              log_info(paste("Found atomic score in analysis result:", score))
+              return(score)
+            }
+          }
+          
+          # Handle list results
+          if (is.list(analysis_result)) {
+            # Try direct match first
+            if (!is.null(analysis_result[[score_key]])) {
+              score <- safe_extract_numeric(analysis_result[[score_key]])
+              if (!is.na(score)) {
+                log_info(paste("Found score in analysis result:", score))
+                return(score)
+              }
+            }
+            
+            # Try common score field names
+            common_fields <- c("score", "value", "mean", "average", "estimate", "statistic")
+            for (field in common_fields) {
+              if (field %in% names(analysis_result)) {
+                score <- safe_extract_numeric(analysis_result[[field]])
+                if (!is.na(score)) {
+                  log_info(paste("Found score in common field", field, ":", score))
+                  return(score)
+                }
+              }
+            }
+          }
+        }
+        
+        # 3. For alignment analysis, try to calculate from medians if score not found directly
+        if (analysis_type == "alignment" && score_key == "alignment_score") {
+          medians <- NULL
+          if (!is.null(analysis_result) && "alignment_medians" %in% names(analysis_result)) {
+            medians <- analysis_result$alignment_medians
+          } else if (exists("project_data") && !is.null(project_data$analysis$alignment_medians)) {
+            medians <- project_data$analysis$alignment_medians
+          }
+          
+          if (!is.null(medians) && is.data.frame(medians)) {
+            if ("overall" %in% names(medians)) {
+              score <- mean(medians$overall, na.rm = TRUE)
+              if (!is.na(score)) {
+                log_info(paste("Calculated alignment score from medians:", score))
+                return(score)
+              }
+            } 
+            
+            # If no 'overall' column, take mean of all numeric columns
+            numeric_cols <- sapply(medians, is.numeric)
+            if (any(numeric_cols)) {
+              score <- mean(as.matrix(medians[, numeric_cols, drop = FALSE]), na.rm = TRUE)
+              if (!is.na(score)) {
+                log_info(paste("Calculated alignment score from numeric columns:", score))
+                return(score)
+              }
+            }
+          }
+        }
+        
+        # 4. If we still don't have a score, try to get it from the analysis store
+        if (exists("project_data") && !is.null(project_data$analysis)) {
+          # Try direct access to the score in the analysis store
+          if (score_key %in% names(project_data$analysis)) {
+            score <- safe_extract_numeric(project_data$analysis[[score_key]])
+            if (!is.na(score)) {
+              log_info(paste("Found score in analysis store:", score))
+              return(score)
+            }
+          }
+        }
+        
+        # 5. Last resort: look for any numeric value in the analysis result
+        if (!is.null(analysis_result) && is.list(analysis_result)) {
+          for (field in names(analysis_result)) {
+            val <- analysis_result[[field]]
+            if (is.numeric(val) && length(val) == 1 && !is.na(val)) {
+              log_info(paste("Found numeric value in field", field, ":", val))
+              return(as.numeric(val))
+            }
+          }
+        }
+        
+        # If we get here, we couldn't find a valid score
+        log_warn(paste("Could not find score for", analysis_type, score_key, "- returning NA"))
+        return(NA)
+      }
+      
+      # Initialize a reactive value to store the UI state
       output$results_ui <- renderUI({
-        # Debug: Log the current state of rv_analysis
+        # Debug: Log the current state of project_data$analysis
         log_info("\n=== RENDERING RESULTS UI ===")
-        log_info(paste("Last analysis type:", rv_analysis$last_analysis_type))
-        log_info(paste("Last updated:", rv_analysis$last_updated))
+        log_info(paste("Last analysis type:", project_data$analysis$last_analysis_type))
+        log_info(paste("Last updated:", project_data$analysis$last_updated))
         
-        # Log detailed state of each analysis type
-        log_info("\n--- Analysis Status ---")
-        log_info(paste("Alignment analyzed:", rv_analysis$alignment_analyzed, "(score:", rv_analysis$alignment_score, ")"))
-        log_info(paste("Dynamics analyzed: ", rv_analysis$dynamics_analyzed, "(score:", rv_analysis$dynamics_score, ")"))
-        log_info(paste("Cascade analyzed:  ", rv_analysis$cascade_analyzed, "(score:", rv_analysis$cascade_score, ")"))
+        # Debug: Log the structure of the analysis results
+        log_info("\n=== ANALYSIS RESULTS STRUCTURE ===")
+        log_info("Alignment analyzed:", project_data$analysis$alignment_analyzed)
+        log_info("Dynamics analyzed:", project_data$analysis$dynamics_analyzed)
+        log_info("Cascade analyzed:", project_data$analysis$cascade_analyzed)
         
-        # Log all available keys for debugging
-        all_keys <- names(reactiveValuesToList(rv_analysis))
-        log_info("\n--- All rv_analysis keys ---\n", paste("-", all_keys, collapse = "\n"))
+        # Safely log the structure without causing errors
+        tryCatch({
+          log_info("\nAlignment structure:")
+          log_info(capture.output(str(project_data$analysis$alignment, max.level = 2)))
+          if (!is.null(project_data$analysis$alignment_score)) {
+            log_info(paste("Alignment score (flat):", project_data$analysis$alignment_score))
+          }
+          
+          log_info("\nDynamics structure:")
+          log_info(capture.output(str(project_data$analysis$dynamics, max.level = 2)))
+          if (!is.null(project_data$analysis$dynamics_score)) {
+            log_info(paste("Dynamics score (flat):", project_data$analysis$dynamics_score))
+          }
+          
+          log_info("\nCascade structure:")
+          log_info(capture.output(str(project_data$analysis$cascade, max.level = 2)))
+        }, error = function(e) {
+          log_warn(paste("Error logging analysis structure:", conditionMessage(e)))
+        })
         
-        # Check if any analysis has been run
-        if (!isTRUE(rv_analysis$alignment_analyzed) &&
-          !isTRUE(rv_analysis$dynamics_analyzed) &&
-          !isTRUE(rv_analysis$cascade_analyzed)) {
-          log_info("No analysis results found, showing placeholder")
-          return(
-            tags$div(
-              class = "data-placeholder",
-              tags$div(
-                class = "d-flex align-items-center justify-content-center gap-2",
-                ph("warning-circle", weight = "bold", class = "warning-icon"),
-                tags$div(
-                  tags$strong("No Analysis Results"),
-                  tags$br(),
-                  "Please run an analysis first to view results."
-                )
-              )
-            )
+        # Initialize sections list to hold UI components
+        sections <- list()
+        
+        # Helper to create a placeholder UI
+        placeholder_ui <- function(title, message, icon = "warning-circle") {
+          tags$div(
+            class = "alert alert-info",
+            ph(icon, weight = "bold"),
+            tags$strong(title),
+            tags$p(message)
           )
         }
-
-        # Create a list to hold all sections
-        sections <- list()
-
-        # Initialize sections list if it doesn't exist
-        if (!exists("sections")) {
-          sections <- list()
-        }
+        
+        # Debug: Print cascade structure
+        print(str(project_data$analysis$cascade))
+        
+        # Initialize UI components list
+        ui_components <- list()
         
         # Add Alignment section if analyzed
-        if (isTRUE(rv_analysis$alignment_analyzed)) {
+        if (isTRUE(project_data$analysis$alignment_analyzed)) {
           log_info("Rendering alignment results")
           
           # Safely get alignment score with fallback
-          alignment_score <- if (is.null(rv_analysis$alignment_score) || is.na(rv_analysis$alignment_score)) {
-            log_warn("Alignment score is missing or invalid, using 0 as fallback")
-            0
-          } else {
-            rv_analysis$alignment_score
+          alignment_score <- safe_get_score("alignment", "alignment_score")
+          if (is.na(alignment_score) || is.null(alignment_score)) {
+            alignment_score <- 0
+            log_warn("Alignment score is NA or NULL, defaulting to 0")
           }
           
-          log_info(paste("Alignment score:", alignment_score))
+          # Ensure alignment_score is a single numeric value
+          if (length(alignment_score) > 1) {
+            alignment_score <- alignment_score[1]
+            log_warn("Alignment score had multiple values, using first value:", alignment_score)
+          }
           
-          alignment_section <- tags$fieldset(
+          # Get ICC data if available
+          icc_data <- project_data$analysis$alignment_icc
+          has_icc <- !is.null(icc_data) && is.list(icc_data) && !is.null(icc_data$icc_value)
+          
+          # Create alignment section UI
+          alignment_ui <- tags$fieldset(
             class = "custom-fieldset",
-            style = "margin-bottom: 2rem;",
-            tags$legend(class = "custom-legend", "Project Alignment"),
-            score_section_ui(
-              data = data.frame(score = alignment_score),
-              value_box_title = "Alignment Score",
-              score = alignment_score,
-              type = "alignment",
-              bgcolor = "#A08E6F",
-              tooltip_text = "This score measures project alignment across eight collaboration areas. Higher scores indicate stronger shared vision and better coordination between partners.",
-              icon_choice = ph_i("flower-lotus", weight = "bold", size = "4x"),
-              input_id = "show_alignment_overlay",
-              ns = ns,
-              section_name = "Project Alignment Score",
-              right_content = tagList(
-                tags$fieldset(
-                  class = "mini-fieldset",
-                  tags$legend(class = "mini-legend", "Foundations"),
-                  layout_columns(
-                    style = "margin-bottom: 0 !important; gap: 0 !important;",
-                    col_widths = c(6, 6),
-                    # First column - Goals/Purposes
-                    tags$div(
-                      class = "d-flex align-items-start justify-items-start",
-                      ph("compass",
-                        weight = "light", size = "1.5x",
-                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
-                      ),
-                      tags$div(
-                        tags$strong("Goals/Purposes", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          get_alignment_domain_score("Purposes", rv_analysis$alignment_medians)
-                        )
-                      )
-                    ),
-                    # Second column - Values/Ideals
-                    tags$div(
-                      class = "d-flex align-items-start justify-items-end",
-                      ph("lighthouse",
-                        weight = "light", size = "1.5x",
-                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
-                      ),
-                      tags$div(
-                        tags$strong("Values/Ideals", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          get_alignment_domain_score("Ideals", rv_analysis$alignment_medians)
-                        )
-                      )
-                    )
-                  )
-                ),
-                tags$fieldset(
-                  class = "mini-fieldset",
-                  tags$legend(class = "mini-legend", "Implementation"),
-                  layout_columns(
-                    style = "margin-bottom: 0 !important; gap: 0 !important;",
-                    col_widths = c(6,6),
-                    # First column - Roles/Responsibilities
-                    tags$div(
-                      class = "d-flex align-items-start",
-                      ph("user-switch",
-                        weight = "light", size = "1.5x",
-                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
-                      ),
-                      tags$div(
-                        tags$strong("Roles/Responsibilities", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
-                        )
-                      )
-                    ),
-                    # Second column - Resources/Assets
-                    tags$div(
-                      class = "d-flex align-items-start",
-                      ph("package",
-                        weight = "light", size = "1.5x",
-                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
-                      ),
-                      tags$div(
-                        tags$strong("Resources", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
-                        )
-                      )
+            style = "margin-bottom: 2rem; padding: 1rem; border: 1px solid #dee2e6; border-radius: 0.5rem;",
+            tags$legend(
+              class = "custom-legend", 
+              style = "width: auto; padding: 0 0.5rem; font-size: 1.25rem; font-weight: 600; color: #495057;",
+              "Alignment Analysis"
+            ),
+            
+            # Score and ICC row
+            fluidRow(
+              # Alignment Score
+              column(
+                width = if (has_icc) 6 else 12,
+                bslib::card(
+                  bslib::card_header(
+                    "Alignment Score",
+                    bslib::tooltip(
+                      bsicons::bs_icon("info-circle"),
+                      "Overall alignment between project components",
+                      placement = "right"
                     )
                   ),
-                  layout_columns(
-                    style = "margin-bottom: 0 !important; gap: 0 !important;",
-                    col_widths = c(6, 6),
-                    # First column - Activities/Events
-                    tags$div(
-                      class = "d-flex align-items-start",
-                      ph("calendar-heart",
-                        weight = "light", size = "1.5x",
-                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
-                      ),
-                      tags$div(
-                        tags$strong("Activities/Events", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
-                        )
-                      )
+                  bslib::card_body(
+                    class = "text-center",
+                    h1(
+                      style = "font-size: 3.5rem; font-weight: bold; margin: 0; color: #0d6efd;",
+                      format(round(alignment_score, 2), nsmall = 2)
                     ),
-                    # Second column - Empowerment
-                    tags$div(
-                      class = "d-flex align-items-start",
-                      ph("hand-fist",
-                        weight = "light", size = "1.5x",
-                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
-                      ),
-                      tags$div(
-                        tags$strong("Empowerment", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
-                        )
-                      )
-                    )
-                  )
-                ),
-                tags$fieldset(
-                  class = "mini-fieldset",
-                  tags$legend(class = "mini-legend", "Results"),
-                  layout_columns(
-                    style = "margin-bottom: 0 !important; gap: 0 !important;",
-                    col_widths = c(6,6),
-                    # First column - Outputs
-                    tags$div(
-                      class = "d-flex align-items-start g-0",
-                      ph("files",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem; gap: 0 !important; "
-                      ),
-                      tags$div(
-                        tags$strong("Outputs", style = "color: var(--bs-primary); gap: 0 !important; text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); gap: 0 !important; text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
-                        )
-                      )
-                    ),
-                    # Second column - Outcomes
-                    tags$div(
-                      class = "d-flex align-items-start g-0",
-                      ph("trend-up",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem; gap: 0 !important; "
-                      ),
-                      tags$div(
-                        tags$strong("Outcomes", style = "color: var(--bs-primary); gap: 0 !important; text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); gap: 0 !important; text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
-                        )
-                      )
+                    p(
+                      style = "margin: 0.5rem 0 0 0; font-size: 1rem; color: #6c757d;",
+                      "Overall alignment across all dimensions"
                     )
                   )
                 )
               ),
-              placeholder_title = "No Alignment Analysis Results",
-              placeholder_text = "Please run the alignment analysis first to view results.",
-              placeholder_icon = ph("warning-circle", weight = "bold", class = "warning-icon")
-            )
+              
+              # ICC score if available
+              if (has_icc) {
+                column(
+                  width = 6,
+                  bslib::card(
+                    bslib::card_header(
+                      "Inter-Rater Reliability",
+                      bslib::tooltip(
+                        bsicons::bs_icon("info-circle"),
+                        "Measures consistency between different raters",
+                        placement = "right"
+                      )
+                    ),
+                    bslib::card_body(
+                      class = "text-center",
+                      h3(
+                        style = "font-size: 2.5rem; font-weight: bold; margin: 0; color: #0d6efd;",
+                        format(round(icc_data$icc_value, 3), nsmall = 3)
+                      ),
+                      p(
+                        style = "margin: 0.5rem 0 0 0; font-style: italic; color: #6c757d;",
+                        icc_data$interpretation
+                      )
+                    )
+                  )
+                )
+              }
+            ),
+            
+            # Data table section
+            if (!is.null(project_data$analysis$alignment_table) && 
+                is.data.frame(project_data$analysis$alignment_table)) {
+              fluidRow(
+                column(
+                  width = 12,
+                  bslib::card(
+                    bslib::card_header("Alignment by Role and Dimension"),
+                    bslib::card_body(
+                      div(
+                        style = "overflow-x: auto;",
+                        DT::dataTableOutput(ns("alignment_table"), width = "100%")
+                      ),
+                      div(
+                        style = "text-align: center; margin-top: 1rem;",
+                        actionButton(
+                          ns("show_alignment_overlay"), 
+                          "Expand Table", 
+                          class = "btn-primary",
+                          style = "margin-right: 0.5rem;"
+                        ),
+                        downloadButton(
+                          ns("download_alignment"), 
+                          "Download Data",
+                          class = "btn-outline-primary"
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            }
           )
           
-          # Add to sections list
-          sections <- c(sections, list(alignment_section))
+          # Add to UI components
+          ui_components <- c(ui_components, list(alignment_ui))
+          
+          # Add table rendering and download handlers
+          output$alignment_table <- DT::renderDataTable({
+            req(project_data$analysis$alignment_table)
+            DT::datatable(
+              project_data$analysis$alignment_table,
+              options = list(
+                pageLength = 10,
+                scrollX = TRUE,
+                dom = 'Bfrtip',
+                buttons = c('copy', 'csv', 'excel')
+              ),
+              rownames = FALSE,
+              class = 'cell-border stripe hover',
+              selection = 'none'
+            )
+          })
+          
+          # Download handler for alignment data
+          output$download_alignment <- downloadHandler(
+            filename = function() {
+              paste0("alignment_data_", Sys.Date(), ".csv")
+            },
+            content = function(file) {
+              write.csv(project_data$analysis$alignment_table, file, row.names = FALSE)
+            }
+          )
         }
-
-        # Add Dynamics section if analyzed
-        if (isTRUE(rv_analysis$dynamics_analyzed)) {
+        
+        # Return all UI components
+        if (length(ui_components) == 0) {
+          # No analysis results to show
+          tagList(
+            tags$div(
+              class = "alert alert-info",
+              ph("info", weight = "bold", class = "me-2"),
+              "No analysis results available. Please run an analysis first."
+            )
+          )
+        } else {
+          # Return all UI components
+          do.call(tagList, ui_components)
+        }
+      })
+      
+          # Add Dynamics section if analyzed
+        if (isTRUE(project_data$analysis$dynamics_analyzed)) {
           log_info("Rendering dynamics results")
           
           # Safely get dynamics score with fallback
-          dynamics_score <- if (is.null(rv_analysis$dynamics_score) || is.na(rv_analysis$dynamics_score)) {
-            log_warn("Dynamics score is missing or invalid, using 0 as fallback")
-            0
-          } else {
-            rv_analysis$dynamics_score
+          dynamics_score <- safe_get_score("dynamics", "dynamics_score")
+          if (is.na(dynamics_score) || is.null(dynamics_score)) {
+            dynamics_score <- 0
+            log_warn("Dynamics score is NA or NULL, defaulting to 0")
+          }
+          
+          # Ensure dynamics_score is a single numeric value
+          if (length(dynamics_score) > 1) {
+            dynamics_score <- dynamics_score[1]
+            log_warn("Dynamics score had multiple values, using first value:", dynamics_score)
           }
           
           log_info(paste("Dynamics score:", dynamics_score))
           
+          # Get dimension scores with fallbacks
+          dim_scores <- list(
+            Contexts = 0,
+            Partnership_Processes = 0,
+            Engaged_Learning = 0,
+            Outcomes = 0,
+            Interventions_Research = 0
+          )
+          
+          if (!is.null(project_data$analysis$dimension_scores)) {
+            for (dim in names(dim_scores)) {
+              if (dim %in% names(project_data$analysis$dimension_scores)) {
+                dim_scores[[dim]] <- safe_round(project_data$analysis$dimension_scores[[dim]], 2)
+              }
+            }
+          }
+
           dynamics_section <- tags$fieldset(
             class = "custom-fieldset",
             style = "margin-bottom: 2rem;",
@@ -1365,99 +1967,161 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
                   class = "mini-fieldset",
                   tags$legend(class = "mini-legend", "Domain Scores"),
                   layout_columns(
-                    style = "margin-bottom: 0 !important; gap: 0 !important;",
-                    col_widths = c(6,6),
+                    style = "margin-bottom: 0 !important; gap: 1rem !important;",
+                    col_widths = c(6, 6),
                     # First column - Contexts
                     tags$div(
-                      class = "d-flex align-items-start",
+                      class = "d-flex align-items-start p-2",
+                      style = "background-color: #f8f9fa; border-radius: 0.5rem;",
                       ph("polygon",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
+                        weight = "light", size = "1.5x",
+                        style = "color: #6f42c1; margin-right: 0.75rem; margin-top: 0.2rem;"
                       ),
                       tags$div(
-                        tags$strong("Contexts", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
+                        style = "width: 100%;",
+                        tags$div(
+                          class = "d-flex justify-content-between align-items-center",
+                          tags$strong("Contexts", style = "color: #6f42c1; font-size: 0.9rem;"),
+                          tags$span(
+                            style = "background-color: #e9ecef; padding: 0.15rem 0.5rem; border-radius: 1rem; font-weight: 600; font-size: 0.85rem;",
+                            dim_scores$Contexts
+                          )
+                        ),
+                        div(
+                          style = "height: 0.5rem; background-color: #e9ecef; border-radius: 0.25rem; margin-top: 0.5rem; overflow: hidden;",
+                          div(
+                            style = sprintf(
+                              "width: %s%%; height: 100%%; background: linear-gradient(90deg, #6f42c1, #9b59b6); border-radius: 0.25rem; transition: width 0.5s ease-in-out;",
+                              min(100, max(0, as.numeric(dim_scores$Contexts) * 20))
+                            )
+                          )
                         )
                       )
                     ),
                     # Second column - Partnership Processes
                     tags$div(
-                      class = "d-flex align-items-start",
+                      class = "d-flex align-items-start p-2",
+                      style = "background-color: #f8f9fa; border-radius: 0.5rem;",
                       ph("handshake",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
+                        weight = "light", size = "1.5x",
+                        style = "color: #6f42c1; margin-right: 0.75rem; margin-top: 0.2rem;"
                       ),
                       tags$div(
-                        tags$strong("Partnership Processes", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
+                        style = "width: 100%;",
+                        tags$div(
+                          class = "d-flex justify-content-between align-items-center",
+                          tags$strong("Partnership", style = "color: #6f42c1; font-size: 0.9rem;"),
+                          tags$span(
+                            style = "background-color: #e9ecef; padding: 0.15rem 0.5rem; border-radius: 1rem; font-weight: 600; font-size: 0.85rem;",
+                            dim_scores$Partnership_Processes
+                          )
+                        ),
+                        div(
+                          style = "height: 0.5rem; background-color: #e9ecef; border-radius: 0.25rem; margin-top: 0.5rem; overflow: hidden;",
+                          div(
+                            style = sprintf(
+                              "width: %s%%; height: 100%%; background: linear-gradient(90deg, #6f42c1, #9b59b6); border-radius: 0.25rem; transition: width 0.5s ease-in-out;",
+                              min(100, max(0, as.numeric(dim_scores$Partnership_Processes) * 20))
+                            )
+                          )
                         )
                       )
                     )
                   ),
                   layout_columns(
-                    style = "margin-bottom: 0 !important; gap: 0 !important;",
-                    class = "d-flex justify-items-center",
+                    style = "margin: 1rem 0 !important; gap: 1rem !important;",
                     col_widths = c(12),
-                    # First column - Interventions/Research
+                    # Interventions/Research
                     tags$div(
-                    tags$div(
-                      class = "d-flex align-items-start",
+                      class = "d-flex align-items-start p-2",
+                      style = "background-color: #f8f9fa; border-radius: 0.5rem;",
                       ph("hand-heart",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
+                        weight = "light", size = "1.5x",
+                        style = "color: #6f42c1; margin-right: 0.75rem; margin-top: 0.2rem;"
                       ),
                       tags$div(
-                        tags$strong("Interventions/ Research", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
+                        style = "width: 100%;",
+                        tags$div(
+                          class = "d-flex justify-content-between align-items-center",
+                          tags$strong("Interventions/Research", style = "color: #6f42c1; font-size: 0.9rem;"),
+                          tags$span(
+                            style = "background-color: #e9ecef; padding: 0.15rem 0.5rem; border-radius: 1rem; font-weight: 600; font-size: 0.85rem;",
+                            dim_scores$Interventions_Research
+                          )
+                        ),
+                        div(
+                          style = "height: 0.5rem; background-color: #e9ecef; border-radius: 0.25rem; margin-top: 0.5rem; overflow: hidden;",
+                          div(
+                            style = sprintf(
+                              "width: %s%%; height: 100%%; background: linear-gradient(90deg, #6f42c1, #9b59b6); border-radius: 0.25rem; transition: width 0.5s ease-in-out;",
+                              min(100, max(0, as.numeric(dim_scores$Interventions_Research) * 20))
+                            )
+                          )
                         )
                       )
                     )
-                    )
                   ),
                   layout_columns(
-                    style = "margin-bottom: 0 !important; gap: 0 !important;",
+                    style = "margin-bottom: 0 !important; gap: 1rem !important;",
                     col_widths = c(6, 6),
                     # First column - Engaged Learning
                     tags$div(
-                      class = "d-flex align-items-start",
+                      class = "d-flex align-items-start p-2",
+                      style = "background-color: #f8f9fa; border-radius: 0.5rem;",
                       ph("book-open-user",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
+                        weight = "light", size = "1.5x",
+                        style = "color: #6f42c1; margin-right: 0.75rem; margin-top: 0.2rem;"
                       ),
                       tags$div(
-                        tags$strong("Engaged Learning", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                        tags$br(),
-                        tags$span(
-                          style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                          safe_round(alignment_score, 2)
+                        style = "width: 100%;",
+                        tags$div(
+                          class = "d-flex justify-content-between align-items-center",
+                          tags$strong("Engaged Learning", style = "color: #6f42c1; font-size: 0.9rem;"),
+                          tags$span(
+                            style = "background-color: #e9ecef; padding: 0.15rem 0.5rem; border-radius: 1rem; font-weight: 600; font-size: 0.85rem;",
+                            dim_scores$Engaged_Learning
+                          )
+                        ),
+                        div(
+                          style = "height: 0.5rem; background-color: #e9ecef; border-radius: 0.25rem; margin-top: 0.5rem; overflow: hidden;",
+                          div(
+                            style = sprintf(
+                              "width: %s%%; height: 100%%; background: linear-gradient(90deg, #6f42c1, #9b59b6); border-radius: 0.25rem; transition: width 0.5s ease-in-out;",
+                              min(100, max(0, as.numeric(dim_scores$Engaged_Learning) * 20))
+                            )
+                          )
                         )
                       )
                     ),
                     # Second column - Outcomes
                     tags$div(
-                    class = "d-flex align-items-start",
-                    ph("chart-line-up",
-                       weight = "light", size = "1.5x",
-                       style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
-                    ),
-                    tags$div(
-                      tags$strong("Outcomes", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
-                      tags$br(),
-                      tags$span(
-                        style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace); font-size:0.9rem;",
-                        safe_round(alignment_score, 2)
+                      class = "d-flex align-items-start p-2",
+                      style = "background-color: #f8f9fa; border-radius: 0.5rem;",
+                      ph("chart-line-up",
+                        weight = "light", size = "1.5x",
+                        style = "color: #6f42c1; margin-right: 0.75rem; margin-top: 0.2rem;"
+                      ),
+                      tags$div(
+                        style = "width: 100%;",
+                        tags$div(
+                          class = "d-flex justify-content-between align-items-center",
+                          tags$strong("Outcomes", style = "color: #6f42c1; font-size: 0.9rem;"),
+                          tags$span(
+                            style = "background-color: #e9ecef; padding: 0.15rem 0.5rem; border-radius: 1rem; font-weight: 600; font-size: 0.85rem;",
+                            dim_scores$Outcomes
+                          )
+                        ),
+                        div(
+                          style = "height: 0.5rem; background-color: #e9ecef; border-radius: 0.25rem; margin-top: 0.5rem; overflow: hidden;",
+                          div(
+                            style = sprintf(
+                              "width: %s%%; height: 100%%; background: linear-gradient(90deg, #6f42c1, #9b59b6); border-radius: 0.25rem; transition: width 0.5s ease-in-out;",
+                              min(100, max(0, as.numeric(dim_scores$Outcomes) * 20))
+                            )
+                          )
+                        )
                       )
                     )
-                  )
                   )
                 ),
                 tags$p("Dynamics analysis shows the internal project dynamics across key domains.")
@@ -1467,25 +2131,34 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
               placeholder_icon = ph("warning-circle", weight = "bold", class = "warning-icon")
             )
           )
-          
+
           # Add to sections list
           sections <- c(sections, list(dynamics_section))
         }
 
         # Add Cascade section if analyzed
-        if (isTRUE(rv_analysis$cascade_analyzed)) {
+        if (isTRUE(project_data$analysis$cascade_analyzed)) {
           log_info("Rendering cascade results")
-          
-          # Safely get cascade score with fallback
-          cascade_score <- if (is.null(rv_analysis$cascade_score) || is.na(rv_analysis$cascade_score)) {
-            log_warn("Cascade score is missing or invalid, using 0 as fallback")
-            0
-          } else {
-            rv_analysis$cascade_score
+
+          # Safely get cascade score with fallback (from new structure)
+          cascade_score <- safe_get_score("cascade", "cascade_score")
+          # Try alternative keys if cascade_score is missing
+          if (!is.null(project_data$analysis$cascade)) {
+            if (!is.null(project_data$analysis$cascade$cascade_score) &&
+              !is.na(project_data$analysis$cascade$cascade_score) &&
+              length(project_data$analysis$cascade$cascade_score) > 0) {
+              cascade_score <- as.numeric(project_data$analysis$cascade$cascade_score)
+            } else if (!is.null(project_data$analysis$cascade$score) &&
+              !is.na(project_data$analysis$cascade$score) &&
+              length(project_data$analysis$cascade$score) > 0) {
+              cascade_score <- as.numeric(project_data$analysis$cascade$score)
+            } else {
+              log_warn("No cascade score found, using NA")
+            }
           }
-          
+
           log_info(paste("Cascade score:", cascade_score))
-          
+
           cascade_section <- tags$fieldset(
             class = "custom-fieldset",
             style = "margin-bottom: 2rem;",
@@ -1512,8 +2185,8 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
                     tags$div(
                       class = "d-flex align-items-start",
                       ph("user-sound",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
+                        weight = "light", size = "1.5x",
+                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
                       ),
                       tags$div(
                         tags$strong("1st Degree", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
@@ -1528,8 +2201,8 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
                     tags$div(
                       class = "d-flex align-items-start",
                       ph("users",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
+                        weight = "light", size = "1.5x",
+                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
                       ),
                       tags$div(
                         tags$strong("2nd Degree", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
@@ -1544,8 +2217,8 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
                     tags$div(
                       class = "d-flex align-items-start",
                       ph("users-three",
-                         weight = "light", size = "1.5x",
-                         style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
+                        weight = "light", size = "1.5x",
+                        style = "color: var(--bs-primary); margin-right:0.5rem; margin-top:0.1rem;"
                       ),
                       tags$div(
                         tags$strong("3rd Degree", style = "color: var(--bs-primary); text-transform: uppercase; font-size:0.8rem;"),
@@ -1564,7 +2237,7 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
               placeholder_icon = ph("warning-circle", weight = "bold", class = "warning-icon")
             )
           )
-          
+
           # Add to sections list
           sections <- c(sections, list(cascade_section))
         }
@@ -1573,150 +2246,12 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         do.call(tagList, sections)
       }) # End of renderUI
 
-      # Render alignment analysis UI
-      output$alignment_ui <- renderUI({
-        if (!isTRUE(rv_analysis$alignment_analyzed)) {
-          return(
-            tags$div(
-              class = "data-placeholder",
-              tags$div(
-                class = "d-flex align-items-center justify-content-center gap-2",
-                ph("warning-circle", weight = "bold", class = "warning-icon"),
-                tags$div(
-                  tags$strong("No Alignment Analysis Results"),
-                  tags$br(),
-                  "Please run the alignment analysis first to view results."
-                )
-              )
-            )
-          )
-        }
-        req(rv_analysis$alignment_analyzed, rv_analysis$alignment_medians)
-        alignment_data <- rv_analysis$alignment_medians
-        numeric_cols <- sapply(alignment_data, is.numeric)
-        if (any(numeric_cols)) alignment_data[numeric_cols] <- round(alignment_data[numeric_cols], 2)
-        tagList(
-          fluidRow(
-            column(width = 1),
-            column(
-              width = 10,
-              bslib::card(
-                bslib::card_body(
-                  div(
-                    DT::dataTableOutput(ns("full_alignment_table"))
-                  ),
-                  div(
-                    style = "text-align: center; margin-top: 0.5em;",
-                    actionButton(ns("show_alignment_overlay"), "Expand Table", class = "btn-primary"),
-                    downloadButton(ns("download_alignment"),
-                      "Download Full Alignment Data",
-                      class = "btn-primary",
-                    )
-                  )
-                )
-              )
-            ),
-            column(width = 1)
-          )
-        )
-      })
-
-      # Render dynamics analysis UI
-      output$dynamics_ui <- renderUI({
-        if (!isTRUE(rv_analysis$dynamics_analyzed)) {
-          return(
-            tags$div(
-              class = "data-placeholder",
-              tags$div(
-                class = "d-flex align-items-center justify-content-center gap-2",
-                ph("warning-circle", weight = "bold", class = "warning-icon"),
-                tags$div(
-                  tags$strong("No Dynamics Analysis Results"),
-                  tags$br(),
-                  "Please run the dynamics analysis first to view results."
-                )
-              )
-            )
-          )
-        }
-        req(rv_analysis$dynamics_analyzed, rv_analysis$dimension_scores)
-        tagList(
-          fluidRow(
-            column(width = 1),
-            column(
-              width = 10,
-              bslib::card(
-                bslib::card_body(
-                  div(
-                    DT::dataTableOutput(ns("full_dynamics_table"))
-                  ),
-                  div(
-                    style = "text-align: center; margin-top: 0.5em;",
-                    actionButton(ns("show_dynamics_overlay"), "Expand Table", class = "btn-primary"),
-                    downloadButton(ns("download_dynamics"),
-                      "Download Full Dynamics Data",
-                      class = "btn-primary",
-                    )
-                  )
-                )
-              )
-            ),
-            column(width = 1)
-          )
-        )
-      })
-
-      # Render cascade analysis UI
-      output$cascade_ui <- renderUI({
-        if (!isTRUE(rv_analysis$cascade_analyzed)) {
-          return(
-            tags$div(
-              class = "data-placeholder",
-              tags$div(
-                class = "d-flex align-items-center justify-content-center gap-2",
-                ph("warning-circle", weight = "bold", class = "warning-icon"),
-                tags$div(
-                  tags$strong("No Cascade Analysis Results"),
-                  tags$br(),
-                  "Please run the cascade analysis first to view results."
-                )
-              )
-            )
-          )
-        }
-        req(rv_analysis$cascade_analyzed, rv_analysis$cascade_results)
-        tagList(
-          fluidRow(
-            column(width = 1),
-            column(
-              width = 10,
-              bslib::card(
-                bslib::card_body(
-                  div(
-                    DT::dataTableOutput(ns("cascade_results_table"))
-                  ),
-                  div(
-                    style = "text-align: center; margin-top: 0.5em;",
-                    actionButton(ns("show_cascade_overlay"), "Expand Table", class = "btn-primary"),
-                    downloadButton(ns("download_cascade"),
-                      "Download Full Cascade Data",
-                      class = "btn-primary",
-                    )
-                  )
-                )
-              )
-            ),
-            column(width = 1)
-          )
-        )
-      })
-
       # Render cascade score box
       output$cascade_score_box <- renderUI({
-        req(rv_analysis$cascade_analyzed, rv_analysis$cascade_score)
+        req(project_data$analysis$cascade_analyzed, project_data$analysis$cascade_score)
 
         score <- tryCatch(
-          as.numeric(rv_analysis$cascade_score),
+          as.numeric(project_data$analysis$cascade_score),
           error = function(e) NA_real_
         )
 
@@ -1794,12 +2329,12 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
 
       # Render cascade results table as a DataTable with scores by layer
       output$cascade_results_table <- DT::renderDataTable({
-        req(rv_analysis$cascade_analyzed, rv_analysis$cascade_results)
+        req(project_data$analysis$cascade_analyzed, project_data$analysis$cascade_results)
 
-        if (is.data.frame(rv_analysis$cascade_results)) {
+        if (is.data.frame(project_data$analysis$cascade_results)) {
           # Show the main cascade results table (scores by layer)
           DT::datatable(
-            rv_analysis$cascade_results,
+            project_data$analysis$cascade_results,
             options = list(
               pageLength = 10,
               scrollX = TRUE,
@@ -1817,28 +2352,24 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
 
       # Render cascade summary output
       output$cascade_summary_output <- renderPrint({
-        req(rv_analysis$cascade_analyzed, rv_analysis$cascade_results)
+        req(project_data$analysis$cascade_analyzed, project_data$analysis$cascade_results)
 
-        cat("Cascade Effects Analysis Summary\n")
-        cat("==============================\n\n")
+        logger::log_info("[@mod_analyze.R] Cascade summary output rendered")
 
-        if (is.data.frame(rv_analysis$cascade_results)) {
+        if (is.data.frame(project_data$analysis$cascade_results)) {
           # Get summary of cascade results
-          cascade_results <- rv_analysis$cascade_results
+          cascade_results <- project_data$analysis$cascade_results
 
           # Calculate basic statistics for numeric columns
           numeric_cols <- sapply(cascade_results, is.numeric)
           if (any(numeric_cols)) {
-            cat("Numeric Columns Summary:\n")
+            logger::log_info("[@mod_analyze.R] Numeric columns summary rendered")
             print(summary(cascade_results[, numeric_cols, drop = FALSE]))
           }
 
           # Add overall score
-          if (!is.null(rv_analysis$cascade_score)) {
-            cat(
-              "\nOverall Cascade Score: ",
-              round(as.numeric(rv_analysis$cascade_score), 2), "\n"
-            )
+          if (!is.null(project_data$analysis$cascade_score)) {
+            logger::log_info("[@mod_analyze.R] Overall cascade score rendered")
           }
         } else {
           cat("No cascade data available for summary")
@@ -1851,28 +2382,28 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
           paste0("cascade_results_", format(Sys.Date(), "%Y%m%d"), ".csv")
         },
         content = function(file) {
-          write.csv(rv_analysis$cascade_results, file, row.names = FALSE)
+          write.csv(project_data$analysis$cascade_results, file, row.names = FALSE)
         }
       )
 
       # Output value for dynamics_analyzed
       output$dynamics_analyzed <- reactive({
-        isTRUE(rv_analysis$dynamics_analyzed)
+        isTRUE(project_data$analysis$dynamics_analyzed)
       })
       outputOptions(output, "dynamics_analyzed", suspendWhenHidden = FALSE)
 
       # Output value for cascade_analyzed
       output$cascade_analyzed <- reactive({
-        isTRUE(rv_analysis$cascade_analyzed)
+        isTRUE(project_data$analysis$cascade_analyzed)
       })
       outputOptions(output, "cascade_analyzed", suspendWhenHidden = FALSE)
 
       # Render dynamics score box
       output$dynamics_score_box <- renderUI({
-        req(rv_analysis$dynamics_analyzed, rv_analysis$dynamics_score)
+        req(project_data$analysis$dynamics_analyzed, project_data$analysis$dynamics_score)
 
         score <- tryCatch(
-          as.numeric(rv_analysis$dynamics_score),
+          as.numeric(project_data$analysis$dynamics_score),
           error = function(e) NA_real_
         )
 
@@ -1965,11 +2496,11 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
       # Render domain scores table
       output$domain_scores_table <- renderTable(
         {
-          req(rv_analysis$dynamics_results)
+          req(project_data$analysis$dynamics_results)
 
-          if (is.data.frame(rv_analysis$dynamics_results)) {
+          if (is.data.frame(project_data$analysis$dynamics_results)) {
             # Format the domain scores nicely
-            domain_scores <- rv_analysis$dynamics_results
+            domain_scores <- project_data$analysis$dynamics_results
 
             # Round numeric columns to 2 decimal places
             numeric_cols <- sapply(domain_scores, is.numeric)
@@ -1990,14 +2521,14 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
 
       # Render dynamics summary output
       output$dynamics_summary_output <- renderPrint({
-        req(rv_analysis$dynamics_results)
+        req(project_data$analysis$dynamics_results)
 
         cat("Dynamics Analysis Summary\n")
         cat("========================\n\n")
 
-        if (is.data.frame(rv_analysis$dynamics_results)) {
+        if (is.data.frame(project_data$analysis$dynamics_results)) {
           # Get summary of domain scores
-          domain_scores <- rv_analysis$dynamics_results
+          domain_scores <- project_data$analysis$dynamics_results
 
           # Calculate basic statistics
           cat("Domain Score Statistics:\n")
@@ -2006,7 +2537,7 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
           # Add overall score
           cat(
             "\nOverall Dynamics Score: ",
-            round(as.numeric(rv_analysis$dynamics_score), 2), "\n"
+            round(as.numeric(project_data$analysis$dynamics_score), 2), "\n"
           )
         } else {
           cat("No dynamics data available for summary")
@@ -2015,11 +2546,11 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
 
       # Render full dynamics results table
       output$full_dynamics_table <- DT::renderDataTable({
-        req(rv_analysis$dynamics_analyzed)
+        req(project_data$analysis$dynamics_analyzed)
 
-        if (is.data.frame(rv_analysis$dimension_scores)) {
+        if (is.data.frame(project_data$analysis$dimension_scores)) {
           DT::datatable(
-            rv_analysis$dimension_scores,
+            project_data$analysis$dimension_scores,
             options = list(
               pageLength = 10,
               scrollX = TRUE,
@@ -2046,13 +2577,13 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
           paste0("dynamics_data_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv")
         },
         content = function(file) {
-          req(rv_analysis$dynamics_analyzed)
+          req(project_data$analysis$dynamics_analyzed)
 
           # Use full_results if available, otherwise fall back to dynamics_results
-          data_to_download <- if (is.data.frame(rv_analysis$full_results)) {
-            rv_analysis$full_results
-          } else if (is.data.frame(rv_analysis$dynamics_results)) {
-            rv_analysis$dynamics_results
+          data_to_download <- if (is.data.frame(project_data$analysis$full_results)) {
+            project_data$analysis$alignment_results
+          } else if (is.data.frame(project_data$analysis$dynamics_results)) {
+            project_data$analysis$dynamics_results
           } else {
             data.frame(Message = "No dynamics data available")
           }
@@ -2068,7 +2599,7 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
           paste0("domain_scores_", format(Sys.Date(), "%Y%m%d"), ".csv")
         },
         content = function(file) {
-          write.csv(rv_analysis$dynamics_results, file, row.names = FALSE)
+          write.csv(project_data$analysis$dynamics_results, file, row.names = FALSE)
         }
       )
 
@@ -2195,17 +2726,17 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
 
       # Render alignment score box
       output$alignment_score_box <- renderUI({
-        req(rv_analysis$alignment_analyzed, rv_analysis$alignment_score)
+        req(project_data$analysis$alignment_analyzed, project_data$analysis$alignment_score)
 
         # Debug: Print the reactive values structure
         message("\n=== DEBUG: Alignment Score ===")
-        message("Type of rv_analysis$alignment_score: ", typeof(rv_analysis$alignment_score))
-        message("Class of rv_analysis$alignment_score: ", class(rv_analysis$alignment_score))
-        message("Value of rv_analysis$alignment_score: ", rv_analysis$alignment_score)
+        message("Type of project_data$analysis$alignment_score: ", typeof(project_data$analysis$alignment_score))
+        message("Class of project_data$analysis$alignment_score: ", class(project_data$analysis$alignment_score))
+        message("Value of project_data$analysis$alignment_score: ", project_data$analysis$alignment_score)
 
         score <- tryCatch(
           {
-            s <- as.numeric(rv_analysis$alignment_score)
+            s <- as.numeric(project_data$analysis$alignment_score)
             message("Successfully converted to numeric: ", s)
             s
           },
@@ -2225,7 +2756,7 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
             class = "alert alert-warning",
             paste(
               "Could not calculate alignment score. Value received:",
-              rv_analysis$alignment_score
+              project_data$analysis$alignment_score
             )
           ))
         }
@@ -2299,9 +2830,9 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
       # Render alignment medians table
       output$alignment_medians_table <- renderTable(
         {
-          req(rv_analysis$alignment_analyzed, rv_analysis$alignment_medians)
+          req(project_data$analysis$alignment_analyzed, project_data$analysis$alignment_medians)
 
-          rv_analysis$alignment_medians
+          project_data$analysis$alignment_medians
         },
         striped = TRUE,
         hover = TRUE,
@@ -2314,12 +2845,12 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         na = ""
       )
 
-      # Render alignment medians table
+      # Render alignment medians table (duplicate removed)
       output$alignment_medians_table <- renderTable(
         {
-          req(rv_analysis$alignment_analyzed, rv_analysis$alignment_medians)
+          req(project_data$analysis$alignment_analyzed, project_data$analysis$alignment_medians)
 
-          rv_analysis$alignment_medians
+          project_data$analysis$alignment_medians
         },
         striped = TRUE,
         hover = TRUE,
@@ -2334,11 +2865,11 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
 
       # Render full alignment table
       output$full_alignment_table <- DT::renderDataTable({
-        req(rv_analysis$alignment_analyzed, rv_analysis$alignment_medians)
+        req(project_data$analysis$alignment_analyzed, project_data$analysis$alignment_medians)
 
-        if (is.data.frame(rv_analysis$alignment_medians)) {
+        if (is.data.frame(project_data$analysis$alignment_medians)) {
           # Format the alignment medians nicely
-          alignment_data <- rv_analysis$alignment_medians
+          alignment_data <- project_data$analysis$alignment_medians
 
           # Round numeric columns to 2 decimal places
           numeric_cols <- sapply(alignment_data, is.numeric)
@@ -2366,9 +2897,9 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
       # Render dynamics medians table
       output$dynamics_medians_table <- renderTable(
         {
-          req(rv_analysis$dynamics_analyzed, rv_analysis$dynamics_results)
+          req(project_data$analysis$dynamics_analyzed, project_data$analysis$dynamics_results)
 
-          rv_analysis$dynamics_results
+          project_data$analysis$dynamics_results
         },
         striped = TRUE,
         hover = TRUE,
@@ -2390,7 +2921,7 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
           )
         },
         content = function(file) {
-          write.csv(rv_analysis$alignment_medians, file, row.names = FALSE)
+          write.csv(project_data$analysis$alignment_medians, file, row.names = FALSE)
         }
       )
 
@@ -2403,43 +2934,43 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
           )
         },
         content = function(file) {
-          write.csv(rv_analysis$alignment_medians, file, row.names = FALSE)
+          write.csv(project_data$analysis$alignment_medians, file, row.names = FALSE)
         }
       )
 
       # Generate summary statistics output - show ICC scores
       output$summary_statistics_output <- renderPrint({
-        req(rv_analysis$alignment_analyzed, rv_analysis$icc_scores)
+        req(project_data$analysis$alignment_analyzed, project_data$analysis$icc_scores)
 
         cat("ICC Scores Summary\n")
         cat("=================\n\n")
 
         # Special handling for irr::icclist objects
-        if (inherits(rv_analysis$icc_scores, "icclist")) {
-          print(rv_analysis$icc_scores)
+        if (inherits(project_data$analysis$icc_scores, "icclist")) {
+          print(project_data$analysis$icc_scores)
           return()
         }
 
         # Fallback for non-icclist objects or if printing fails
-        if (is.list(rv_analysis$icc_scores)) {
+        if (is.list(project_data$analysis$icc_scores)) {
           # Try to extract common ICC values
           icc_value <- tryCatch(
             {
-              rv_analysis$icc_scores$value
+              project_data$analysis$icc_scores$value
             },
             error = function(e) NULL
           )
 
           if (!is.null(icc_value)) {
             cat("ICC Value:", icc_value, "\n\n")
-            if (!is.null(rv_analysis$icc_scores$lbound) && !is.null(rv_analysis$icc_scores$ubound)) {
+            if (!is.null(project_data$analysis$icc_scores$lbound) && !is.null(project_data$analysis$icc_scores$ubound)) {
               cat(
-                "95% CI:", rv_analysis$icc_scores$lbound, "to",
-                rv_analysis$icc_scores$ubound, "\n"
+                "95% CI:", project_data$analysis$icc_scores$lbound, "to",
+                project_data$analysis$icc_scores$ubound, "\n"
               )
             }
-            if (!is.null(rv_analysis$icc_scores$p.value)) {
-              cat("p-value:", rv_analysis$icc_scores$p.value, "\n")
+            if (!is.null(project_data$analysis$icc_scores$p.value)) {
+              cat("p-value:", project_data$analysis$icc_scores$p.value, "\n")
             }
             return()
           }
@@ -2447,7 +2978,7 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
 
         # If we get here, show the raw structure
         cat("ICC Scores (raw structure):\n")
-        str(rv_analysis$icc_scores)
+        str(project_data$analysis$icc_scores)
       })
 
       # Create workflow observers using centralized utility functions
@@ -2491,8 +3022,8 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         content_ui = DT::dataTableOutput(ns("full_alignment_table_overlay"))
       )
       output$full_alignment_table_overlay <- DT::renderDataTable({
-        req(rv_analysis$alignment_analyzed, rv_analysis$alignment_medians)
-        alignment_data <- rv_analysis$alignment_medians
+        req(project_data$analysis$alignment_analyzed, project_data$analysis$alignment_medians)
+        alignment_data <- project_data$analysis$alignment_medians
         numeric_cols <- sapply(alignment_data, is.numeric)
         if (any(numeric_cols)) alignment_data[numeric_cols] <- round(alignment_data[numeric_cols], 2)
         DT::datatable(alignment_data, options = list(scrollX = TRUE, pageLength = 10, dom = "ftip"), rownames = FALSE)
@@ -2506,11 +3037,11 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         content_ui = DT::dataTableOutput(ns("full_dynamics_table_overlay"))
       )
       output$full_dynamics_table_overlay <- DT::renderDataTable({
-        req(rv_analysis$dynamics_analyzed)
-        data_to_show <- if (is.data.frame(rv_analysis$full_results)) {
-          rv_analysis$full_results
-        } else if (is.data.frame(rv_analysis$dynamics_results)) {
-          rv_analysis$dynamics_results
+        req(project_data$analysis$dynamics_analyzed)
+        data_to_show <- if (is.data.frame(project_data$analysis$full_results)) {
+          project_data$analysis$alignment_results
+        } else if (is.data.frame(project_data$analysis$dynamics_results)) {
+          project_data$analysis$dynamics_results
         } else {
           data.frame(Message = "No dynamics data available")
         }
@@ -2525,12 +3056,12 @@ mod_analyze_server <- function(id, ns_project, rv_analysis) {
         content_ui = DT::dataTableOutput(ns("cascade_results_table_overlay"))
       )
       output$cascade_results_table_overlay <- DT::renderDataTable({
-        req(rv_analysis$cascade_analyzed, rv_analysis$cascade_results)
-        DT::datatable(rv_analysis$cascade_results, options = list(pageLength = 10, scrollX = TRUE, dom = "frtip"), rownames = FALSE)
+        req(project_data$analysis$cascade_analyzed, project_data$analysis$cascade_results)
+        DT::datatable(project_data$analysis$cascade_results, options = list(pageLength = 10, scrollX = TRUE, dom = "frtip"), rownames = FALSE)
       })
 
       # Return analysis results
-      return(rv_analysis)
+      return(project_data$analysis)
     } # Closes the 'module = function(...) {' block
   ) # Closes the 'moduleServer(...)' call
 } # Closes the 'mod_analyze_server <- function(...) {' block

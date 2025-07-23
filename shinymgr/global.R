@@ -48,6 +48,9 @@ app_mods <- list.files(
 
 sapply(app_mods, FUN = source)
 
+# Source utility functions
+source(file.path(shinyMgrPath, "utils", "utils_validate_project_data.R"))
+
 # source in all utils
 # source("utils/utils_workflow.R")
 utils_mods <- list.files(

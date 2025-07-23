@@ -1,8 +1,18 @@
 #!! ModName = mod_setup
+#!! ModDisplayName = Project Setup
+#!! ModDescription = Set up project information and configuration
+#!! ModCitation = Price, Jeremy F. (2025). mod_setup. [Source code].
+#!! ModNotes = This module provides functionality to set up project information.
+#!! ModActive = 1
+#!! FunctionArg = project_data !! Project data for setup !! reactive
+#!! FunctionArg = ns_workflow !! Namespace for workflow updates !! character
+
 # Load required libraries
 #' @importFrom phosphoricons ph
 #' @importFrom shinyAce updateAceEditor
 #' @importFrom logger log_info log_warn log_error log_trace
+
+# Utilities are loaded in global.R
 #' @importFrom bslib navset_card_tab nav_panel
 #' @importFrom shinyToastify showToast
 #' @importFrom shinyvalidate InputValidator sv_required sv_between sv_in_set
@@ -375,12 +385,12 @@ mod_setup_ui <- function(id) {
 
 
 # the server function
-mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
+mod_setup_server <- function(id, project_data, ns_workflow) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
     logger::log_info("Initiating project setup module")
-
+    
     # Initialize input validation
     iv <- InputValidator$new()
 
@@ -555,9 +565,19 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
 
       # Log the current state for debugging
       logger::log_info("=== After Save ===")
-      logger::log_info("Project title: ", ns_project$project_title)
-      logger::log_info("Report date: ", ns_project$project_report_date, " (class: ", class(ns_project$project_report_date), ")")
-      logger::log_info("Report formats: ", paste(ns_project$report_formats, collapse = ", "))
+      # Store project info in project_data
+      project_data$project_info$title <- input$project_title
+      project_data$project_info$description <- input$project_description
+      project_data$project_info$report_formats <- input$report_formats
+      project_data$project_info$report_keywords <- input$project_keywords
+      project_data$project_info$report_date <- tryCatch(
+        as.character(as.Date(input$report_date)),
+        error = function(e) as.character(Sys.Date())
+      )
+      
+      logger::log_info("Project title: ", project_data$project_info$title)
+      logger::log_info("Report date: ", project_data$project_info$report_date, " (class: ", class(project_data$project_info$report_date), ")")
+      logger::log_info("Report formats: ", paste(project_data$project_info$report_formats, collapse = ", "))
 
       #   # Show progress bar
       #   session$sendCustomMessage("show-progress", list(
@@ -624,7 +644,7 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
         if (!is.null(input$project_title) && nchar(trimws(input$project_title)) > 0) {
           trigger_editing()
         }
-        ns_project$project_title <- input$project_title
+        project_data$project_info$title <- input$project_title
       },
       ignoreInit = TRUE
     )
@@ -944,16 +964,16 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
     # Remove the automatic title update on input change
 
     observe({
-      updateDateInput(session, "report_date", value = ns_project$project_report_date)
-      updateTextAreaInput(session, "project_description", value = ns_project$project_description)
+      updateDateInput(session, "report_date", value = project_data$project_info$report_date)
+      updateTextAreaInput(session, "project_description", value = project_data$project_info$description)
     })
 
     # Reset details_saved to FALSE when any input changes (except the save button)
-    # Also set ns_project$project_report_date reactively
+    # Also set project_data$project_info$report_date reactively
     observeEvent(list(input$project_title, input$project_description, input$report_formats, input$project_keywords, input$report_date),
       {
         details_saved(FALSE)
-        ns_project$project_report_date <- tryCatch(
+        project_data$project_info$report_date <- tryCatch(
           {
             if (!is.null(input$report_date) && !is.na(input$report_date)) {
               as.character(as.Date(input$report_date))
@@ -980,12 +1000,12 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
     #
     #   logger::log_info("About to update project title...")
     #   # Update the project title
-    #   ns_project$project_title <- if (!is.null(input$project_title)) input$project_title else ""
+    #   project_data$project_info$title <- if (!is.null(input$project_title)) input$project_title else ""
     #   logger::log_info("Project title updated successfully")
     #
     #   logger::log_info("About to update project report date...")
     #   # Update the project report date
-    #   ns_project$project_report_date <- tryCatch(
+    #   project_data$project_info$report_date <- tryCatch(
     #     {
     #       if (!is.null(input$report_date) && !is.na(input$report_date)) {
     #         date_val <- as.character(as.Date(input$report_date))
@@ -1005,14 +1025,14 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
     #
     #   logger::log_info("About to update report formats...")
     #   # Update report formats
-    #   ns_project$report_formats <- if (!is.null(input$report_formats)) input$report_formats else character(0)
+    #   project_data$project_info$report_formats <- if (!is.null(input$report_formats)) input$report_formats else character(0)
     #   logger::log_info("Report formats updated successfully")
     #
     #   # Log the current state for debugging
     #   logger::log_info("=== After Save ===")
-    #   logger::log_info("Project title: ", ns_project$project_title)
-    #   logger::log_info("Report date: ", ns_project$project_report_date, " (class: ", class(ns_project$project_report_date), ")")
-    #   logger::log_info("Report formats: ", paste(ns_project$report_formats, collapse = ", "))
+    #   logger::log_info("Project title: ", project_data$project_info$title)
+    #   logger::log_info("Report date: ", project_data$project_info$report_date, " (class: ", class(project_data$project_info$report_date), ")")
+    #   logger::log_info("Report formats: ", paste(project_data$project_info$report_formats, collapse = ", "))
     #
     #   logger::log_info("About to increment trigger_ui_update...")
     #   # Increment the trigger to force UI updates
@@ -1170,23 +1190,7 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
         ""
       }
     })
-
-    project_report_date <- reactive({
-      if (!is.null(input$report_date)) {
-        tryCatch(
-          {
-            as.character(as.Date(input$report_date))
-          },
-          error = function(e) {
-            logger::log_warn("Error formatting report date: {conditionMessage(e)}")
-            ""
-          }
-        )
-      } else {
-        ""
-      }
-    })
-
+    
     project_keywords <- reactive({
       if (!is.null(input$project_keywords) && length(input$project_keywords) > 0) {
         input$project_keywords
@@ -1285,20 +1289,50 @@ mod_setup_server <- function(id, ns_authors, ns_project, ns_workflow) {
       list(
         icons = report_icons_ui,
         # Individual project data
-        title = project_title,
-        description = project_description,
-        report_date = project_report_date,
-        keywords = project_keywords,
-        report_formats = project_report_formats,
+        title = reactive({
+          if (is.reactive(project_title)) project_title() else project_title
+        }),
+        description = reactive({
+          if (is.reactive(project_description)) project_description() else project_description
+        }),
+        report_date = reactive({
+          if (shiny::is.reactivevalues(project_data) && 
+              !is.null(project_data$project_info) && 
+              !is.null(project_data$project_info$report_date)) {
+            project_data$project_info$report_date
+          } else {
+            NULL
+          }
+        }),
+        keywords = reactive({
+          if (is.reactive(project_keywords)) project_keywords() else project_keywords
+        }),
+        report_formats = reactive({
+          if (is.reactive(project_report_formats)) project_report_formats() else project_report_formats
+        }),
         # Individual author data
-        author_name = author_name,
-        author_affiliation = author_affiliation,
-        author_orcid = author_orcid,
-        author_email = author_email,
-        author_url = author_url,
+        author_name = reactive({
+          if (is.reactive(author_name)) author_name() else author_name
+        }),
+        author_affiliation = reactive({
+          if (is.reactive(author_affiliation)) author_affiliation() else author_affiliation
+        }),
+        author_orcid = reactive({
+          if (is.reactive(author_orcid)) author_orcid() else author_orcid
+        }),
+        author_email = reactive({
+          if (is.reactive(author_email)) author_email() else author_email
+        }),
+        author_url = reactive({
+          if (is.reactive(author_url)) author_url() else author_url
+        }),
         # Combined data
-        author_info = author_info,
-        project_info = project_info
+        author_info = reactive({
+          if (is.reactive(author_info)) author_info() else author_info
+        }),
+        project_info = reactive({
+          if (is.reactive(project_info)) project_info() else project_info
+        })
       )
     )
   })

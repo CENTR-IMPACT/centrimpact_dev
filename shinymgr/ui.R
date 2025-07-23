@@ -232,8 +232,7 @@ ui <- tagList(
     #   title = "Enter Data",
     #   icon = ph("pencil-ruler", weight = "fill"),
     #   mod_enter_data_ui("enter_data_1"),
-    #   style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
-    #   class = "neumorphic"
+    #   class = "main_content"
     # ),
     bslib::nav_panel(
       title = "Analyze Data",

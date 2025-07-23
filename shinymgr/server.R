@@ -330,15 +330,56 @@ server <- function(input, output, session) {
   })
 
 
+  # Initialize project data structure
+  project_data <- reactiveValues(
+    # Project Information
+    project_info = list(
+      title = NULL,                   # character(1)
+      description = NULL,             # character(1)
+      authors = list(),               # list of author information
+      report_formats = character(0),  # character vector of selected formats
+      report_date = NULL,             # Date or character(1)
+      report_keywords = NULL          # character vector
+    ),
+    
+    # Cleaned Data
+    cleaned_data = list(
+      indicators = NULL,
+      alignment = NULL,
+      dynamics = NULL,
+      cascade = NULL
+    ),
+    
+    # Analysis Results
+    analysis = list(
+      alignment = NULL,
+      dynamics = NULL,
+      cascade = NULL
+    ),
+    
+    # Visualization Objects (including ggplot2 objects)
+    visualization = list(
+      indicators = NULL,  # ggplot2 object
+      alignment = NULL,   # ggplot2 object
+      dynamics = NULL,    # ggplot2 object
+      cascade = NULL      # ggplot2 object
+    ),
+    
+    # Status Tracking
+    status = list(
+      setup_complete = FALSE,
+      data_loaded = FALSE,
+      analysis_complete = FALSE,
+      visualization_complete = FALSE
+    )
+  )
+  
   # Store module instances - initialize after setup module to avoid dependency issues
   modules <- reactiveValues(
     load_clean = NULL,
     analyze = NULL,
     visualize = NULL
   )
-
-  # Create a single shared rv_analysis for analysis and visualization modules
-  rv_analysis <- reactiveValues()
 
   # Track which modules have been initialized
   load_clean_initialized <- reactiveVal(FALSE)
@@ -356,8 +397,14 @@ server <- function(input, output, session) {
   # --- Project Setup Module: Call unconditionally at top-level ---
   setup_module <- mod_setup_server(
     id = "setup_1",
-    ns_authors = ns_authors,
-    ns_project = ns_project,
+    project_data = project_data,
+    ns_workflow = ns_workflow
+  )
+
+  # --- Enter Data Module: Call unconditionally at top-level ---
+  enter_data_module <- mod_enter_data_server(
+    id = "enter_data_1",
+    project_data = project_data,
     ns_workflow = ns_workflow
   )
 
@@ -374,7 +421,7 @@ server <- function(input, output, session) {
       logger::log_info("Initializing load_clean module...")
       modules$load_clean <- mod_load_clean_server(
         id = "load_clean_1",
-        ns_project = ns_project
+        project_data = project_data
       )
       load_clean_initialized(TRUE)
       logger::log_info("load_clean module initialized successfully")
@@ -387,8 +434,7 @@ server <- function(input, output, session) {
       logger::log_info("Initializing analyze module...")
       modules$analyze <- mod_analyze_server(
         id = "analyze_data_1",
-        ns_project = ns_project,
-        rv_analysis = rv_analysis
+        project_data = project_data
       )
       analyze_initialized(TRUE)
       logger::log_info("analyze module initialized successfully")
@@ -401,14 +447,24 @@ server <- function(input, output, session) {
       logger::log_info("Initializing visualize module...")
       modules$visualize <- mod_visualize_server(
         id = "visualize_1",
-        ns_project = ns_project,
-        rv_analysis = rv_analysis
+        project_data = project_data
       )
       logger::log_info("visualize module initialized successfully")
     }
   })
 
-
+  # Initialize generate module
+  observe({
+    req(setup_module)
+    if (is.null(modules$generate)) {
+      logger::log_info("Initializing generate module...")
+      modules$generate <- mod_generate_server(
+        id = "generate_1",
+        project_data = project_data
+      )
+      logger::log_info("generate module initialized successfully")
+    }
+  })
 
   # Single consolidated observer for main_navbar changes
   observeEvent(input$main_navbar,
