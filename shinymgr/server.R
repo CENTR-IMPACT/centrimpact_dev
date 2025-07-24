@@ -28,6 +28,10 @@ server <- function(input, output, session) {
     )
   })
 
+  observeEvent(session$clientData$url_port, {
+    nav_hide(id = "main_navbar", target = "Enter Data")
+  }, once = TRUE)
+  
   # control the reactive db connection object
   observeEvent(
     eventExpr = {
@@ -401,12 +405,6 @@ server <- function(input, output, session) {
     ns_workflow = ns_workflow
   )
 
-  # --- Enter Data Module: Call unconditionally at top-level ---
-  enter_data_module <- mod_enter_data_server(
-    id = "enter_data_1",
-    project_data = project_data,
-    ns_workflow = ns_workflow
-  )
 
   # Wire up the returned reactives to sidebar outputs
   output$report_output_icons <- renderUI({
@@ -591,9 +589,13 @@ server <- function(input, output, session) {
     data_entry_mode(!data_entry_mode())
 
     if (isTRUE(data_entry_mode())) {
-      entry_mode <- "upload"
-    } else {
       entry_mode <- "manual"
+      nav_show(id = "main_navbar", target = "Enter Data")
+      nav_hide(id = "main_navbar", target = "Upload Data")
+    } else {
+      entry_mode <- "upload"
+      nav_hide(id = "main_navbar", target = "Enter Data")
+      nav_show(id = "main_navbar", target = "Upload Data")
     }
 
     # Log the current data entry mode state

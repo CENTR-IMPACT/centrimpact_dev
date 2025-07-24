@@ -212,6 +212,7 @@ ui <- tagList(
     # Navigation panels (comma-separated)
     bslib::nav_panel(
       title = "Home",
+      value = "home",
       icon = ph("map-pin-area", weight = "bold"),
       mod_home_ui("home_1"),
       class = "main_content"
@@ -223,37 +224,36 @@ ui <- tagList(
       class = "main_content"
     ),
     bslib::nav_panel(
+      value = "Upload Data",
       title = "Upload Data",
       icon = ph("pencil-ruler", weight = "fill"),
       mod_load_clean_ui("load_clean_1"),
       class = "main_content"
     ),
-    # bslib::nav_panel(
-    #   title = "Enter Data",
-    #   icon = ph("pencil-ruler", weight = "fill"),
-    #   mod_enter_data_ui("enter_data_1"),
-    #   class = "main_content"
-    # ),
+    bslib::nav_panel(
+      value = "Enter Data",
+      title = "Enter Data",
+      icon = ph("pencil-ruler", weight = "fill"),
+      mod_enter_data_ui("enter_data_1"),
+      class = "main_content"
+    ),
     bslib::nav_panel(
       title = "Analyze Data",
       icon = ph("calculator", weight = "fill"),
       mod_analyze_ui("analyze_data_1"),
-      style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
-      class = "neumorphic"
+      class = "main_content"
     ),
     bslib::nav_panel(
       title = "Visualize Data",
       icon = ph("compass-tool", weight = "fill"),
       mod_visualize_ui("visualize_1"),
-      style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
-      class = "neumorphic"
+      class = "main_content"
     ),
     bslib::nav_panel(
       title = "Generate Report",
       icon = ph("pen-nib", weight = "fill"),
       mod_generate_ui("generate_1"),
-      style = "margin: 0.5em 1.25em 1.25em 0.5em !important;",
-      class = "neumorphic"
+      class = "main_content"
     ),
     # Right-aligned navigation items
     bslib::nav_spacer(),

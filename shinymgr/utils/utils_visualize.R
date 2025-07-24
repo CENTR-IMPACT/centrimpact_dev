@@ -1,50 +1,49 @@
 # Utility functions for visualization plots
 
 #' Create indicators plot
-#' @param indicator_data Data frame of indicators
-#' @return ggplot object
-create_indicators_plot <- function(indicator_data, remove_axis_labels = FALSE) {
-  cat("\n=== Starting indicators plot generation ===\n")
-  req(indicator_data)
-  cat("Indicators data found, proceeding with visualization\n")
-  numeric_cols <- sapply(indicator_data, is.numeric)
-  value_col <- names(indicator_data)[numeric_cols][1]
-  if (is.na(value_col)) {
-    stop("No numeric column found in indicators data for visualization")
+#' @param indicators_data Data frame of indicators
+#' @param color_palette Vector of colors for the indicators
+#' @return List with preview and main ggplot objects
+create_indicators_plots <- function(indicators_data, color_palette) {
+  req(indicators_data)
+  
+  # Handle empty or NULL data
+  if (is.null(indicators_data) || nrow(indicators_data) == 0) {
+    stop("No indicator data provided")
   }
-  non_numeric_cols <- !sapply(indicator_data, is.numeric)
+  
+  # Convert to data frame if it's not already
+  if (!is.data.frame(indicators_data)) {
+    indicators_data <- as.data.frame(indicators_data, stringsAsFactors = FALSE)
+  }
+  
+  # Find the first numeric column to use as values
+  numeric_cols <- sapply(indicators_data, is.numeric)
+  value_col <- names(which(numeric_cols)[1])
+  
+  if (is.na(value_col)) {
+    stop("No numeric column found in indicators data")
+  }
+  
+  # Use row names or first non-numeric column as indicator names
+  non_numeric_cols <- !sapply(indicators_data, is.numeric)
   if (any(non_numeric_cols)) {
-    indicator_col <- names(indicator_data)[non_numeric_cols][1]
+    indicator_col <- names(which(non_numeric_cols)[1])
     plot_data <- data.frame(
-      indicator = as.character(indicator_data[[indicator_col]]),
-      value = as.numeric(indicator_data[[value_col]]),
+      indicator = as.character(indicators_data[[indicator_col]]),
+      value = as.numeric(indicators_data[[value_col]]),
       stringsAsFactors = FALSE
     )
   } else {
     plot_data <- data.frame(
-      indicator = rownames(indicator_data),
-      value = as.numeric(indicator_data[[value_col]]),
+      indicator = rownames(indicators_data),
+      value = as.numeric(indicators_data[[value_col]]),
       stringsAsFactors = FALSE
     )
   }
-  indicators_preview <- ggplot2::ggplot(
-    data = plot_data,
-    ggplot2::aes(
-      x = indicator,
-      r = value
-    )
-  ) +
-  centrimpactvis::geom_indicators(
-      show.legend = FALSE,
-      show_reference_circles = FALSE,
-      show_reference_lines = FALSE,
-      scale_factor = 30,
-      color = "#edeae2", alpha = 0.7,
-      fill = "#edeae2", alpha = 0.7
-    ) +
-    ggplot2::theme_void()
-
-  p <- ggplot2::ggplot(
+  
+  # Create base plot
+  base_plot <- ggplot2::ggplot(
     data = plot_data,
     ggplot2::aes(
       x = indicator,
@@ -58,50 +57,81 @@ create_indicators_plot <- function(indicator_data, remove_axis_labels = FALSE) {
       show_reference_lines = TRUE,
       scale_factor = 30
     ) +
+    ggplot2::scale_fill_manual(values = color_palette)
+  
+  # Create preview version
+  preview_plot <- base_plot +
+    ggplot2::theme_void() +
+    ggplot2::theme(
+      axis.text = ggplot2::element_blank(),
+      axis.ticks = ggplot2::element_blank(),
+      axis.title = ggplot2::element_blank(),
+      panel.grid = ggplot2::element_blank(),
+      plot.background = ggplot2::element_blank(),
+      panel.background = ggplot2::element_blank()
+    )
+  
+  # Create main version
+  main_plot <- base_plot +
     ggplot2::theme_minimal() +
     ggplot2::theme(
       axis.text.x = ggplot2::element_text(
         angle = 45,
         hjust = 1,
         size = 14,
-        family = "IBM Plex Mono"
+        family = "ibmplexmono"
       ),
       axis.text.y = ggplot2::element_blank(),
       axis.title = ggplot2::element_blank(),
       panel.grid = ggplot2::element_blank()
     )
-  if (remove_axis_labels) {
-    p <- p + ggplot2::theme(axis.title.x = ggplot2::element_blank(), axis.title.y = ggplot2::element_blank())
-  }
+  
   return(list(
-    preview = indicators_preview,
-    main = p
+    preview = preview_plot,
+    main = main_plot
   ))
 }
 
 #' Create alignment plots
-#' @param alignment_data Data frame of alignment medians
-#' @param color_palette Color palette
-#' @return list with preview and main ggplot objects
-create_alignment_plots <- function(alignment_data, color_palette, remove_axis_labels = FALSE) {
-  if (is.null(alignment_data)) {
+#' @param analysis_results List containing alignment analysis results with $table
+#' @param color_palette Vector of colors for the alignment plot
+#' @return List with preview and main ggplot objects
+create_alignment_plots <- function(analysis_results, color_palette) {
+  # Handle different input structures
+  if (is.data.frame(analysis_results)) {
+    # Direct data frame input
+    alignment_data <- analysis_results
+  } else if (is.list(analysis_results) && !is.null(analysis_results$alignment) && !is.null(analysis_results$alignment$table)) {
+    # Nested structure
+    alignment_data <- as.data.frame(analysis_results$alignment$table)
+  } else if (is.list(analysis_results) && !is.null(analysis_results$table)) {
+    # Alternative structure
+    alignment_data <- as.data.frame(analysis_results$table)
+  } else {
     stop("No alignment analysis results available")
   }
-  median_frame_long <- alignment_data %>%
-    tidyr::pivot_longer(
-      cols = c("partner", "researcher", "overall"),
-      names_to = "role",
-      values_to = "value"
-    )
+  
+  # Pivot to long format for plotting
+  median_frame_long <- tidyr::pivot_longer(
+    alignment_data,
+    cols = c("partner", "researcher", "overall"),
+    names_to = "role",
+    values_to = "value"
+  )
+  
+  # Set factor levels for proper ordering
   median_frame_long$role <- factor(median_frame_long$role,
     levels = c("partner", "researcher", "overall")
   )
+  
   first_group <- "partner"
   last_group <- "overall"
+  
+  # Create labels for left and right sides
   left_labels <- median_frame_long %>% dplyr::filter(role == first_group)
   right_labels <- median_frame_long %>% dplyr::filter(role == last_group)
   
-  # base_plot now does NOT include geom_line or geom_point
+  # Create base plot
   base_plot <- ggplot2::ggplot(
     data = median_frame_long,
     ggplot2::aes(x = role, y = value, group = alignment, color = alignment)
@@ -124,7 +154,7 @@ create_alignment_plots <- function(alignment_data, color_palette, remove_axis_la
       axis.text = ggplot2::element_blank()
     )
 
-  # Main plot: add colored lines and points as before
+  # Main plot: add colored lines and points
   main_plot <- base_plot +
     ggplot2::geom_line(linewidth = 0.5) +
     ggplot2::geom_point() +
@@ -179,82 +209,67 @@ create_alignment_plots <- function(alignment_data, color_palette, remove_axis_la
       plot.margin = ggplot2::margin(30, 30, 30, 30),
       text = ggplot2::element_text(family = "lato")
     )
+  
   return(list(preview = preview_plot, main = main_plot))
 }
 
 #' Create dynamics plot
-#' @param domain_scores Data frame of domain-level scores (for bars and labels)
-#' @param dimension_scores Data frame of dimension-level scores (for stamen lines/points)
-#' @return list with preview and main ggplot objects
-create_dynamics_plot <- function(
-  domain_scores,
-  dimension_scores = NULL,
-  color_palette = NULL,
-  remove_axis_labels = FALSE
-) {
-  if (is.null(domain_scores)) {
-    stop("No domain_scores data available. Please provide domain_scores data frame.")
+#' @param domain_scores Data frame containing domain scores
+#' @param dimension_scores Data frame containing dimension scores (optional)
+#' @param color_palette Vector of colors for the plot
+#' @return List with preview and main ggplot objects
+create_dynamics_plot <- function(domain_scores, dimension_scores = NULL, color_palette = NULL) {
+  # Validate inputs
+  if (is.null(domain_scores) || nrow(domain_scores) == 0) {
+    stop("No domain scores provided for dynamics plot")
   }
-
+  
   # Ensure required columns exist in domain_scores
-  if (!"domain" %in% names(domain_scores)) {
-    stop("domain_scores must have a 'domain' column.")
+  required_domain_cols <- c("domain")
+  if (!all(required_domain_cols %in% names(domain_scores))) {
+    stop(sprintf("Domain scores must contain columns: %s", 
+                paste(required_domain_cols, collapse = ", ")))
   }
+  
+  # Check for score column (could be 'score' or 'domain_score')
   if (!"domain_score" %in% names(domain_scores)) {
-    stop("domain_scores must have a 'domain_score' column.")
-  }
-
-  # Prepare color columns if not present
-  if (!"color_fill" %in% names(domain_scores)) {
-    if (!is.null(color_palette)) {
-      domain_scores$color_fill <- rep(color_palette, length.out = nrow(domain_scores))
+    if ("score" %in% names(domain_scores)) {
+      # Rename score to domain_score for consistency
+      domain_scores <- domain_scores %>%
+        dplyr::rename(domain_score = score)
     } else {
-      domain_scores$color_fill <- "#edeae2"
+      stop("Domain scores must contain either 'score' or 'domain_score' column")
     }
-  }
-  if (!"color_border" %in% names(domain_scores)) {
-    domain_scores$color_border <- domain_scores$color_fill
   }
 
   # Define the correct domain order
   domain_order <- c(
     "Contexts",
-    "Partnership Processes",
+    "Partnership Processes", 
     "Interventions and Research",
-    "Engaged Learning",
-    "Outcomes"
+    "Outcomes and Impacts"
   )
   
-  # For domain labels around the plot - join domain_scores with dimension_scores if available
-  if (!is.null(dimension_scores) && all(c("dimension", "domain") %in% names(dimension_scores))) {
-    # Ensure dimensions are in their original order
-    dimension_order <- unique(dimension_scores$dimension)
-    dimension_scores$dimension <- factor(dimension_scores$dimension, levels = dimension_order)
-    
-    # Convert domain to character to avoid factor/ordered factor mismatch
-    dimension_scores$domain <- as.character(dimension_scores$domain)
-    
-    # Get all domains, even those without dimensions
-    plot_domains <- data.frame(domain = domain_order) %>%
-      dplyr::left_join(
-        domain_scores %>% 
-          dplyr::select(domain, domain_score, color_fill, color_border) %>%
-          dplyr::mutate(domain = as.character(domain)),
-        by = "domain"
-      )
-    
-    # Fill in any missing domains with default values and ensure proper factor levels
-    plot_domains <- plot_domains %>%
-      dplyr::mutate(
-        domain_score = ifelse(is.na(domain_score), 0, domain_score),
-        color_fill = ifelse(is.na(color_fill), "#edeae2", color_fill),
-        color_border = ifelse(is.na(color_border), "#edeae2", color_border),
-        domain = factor(domain, levels = domain_order)  # Convert back to factor with correct order
-      )
-  } else {
-    # If no dimension_scores, just use domain_scores with proper factor levels
-    plot_domains <- domain_scores %>%
-      dplyr::mutate(domain = factor(domain, levels = domain_order))
+  # Validate and prepare dimension_scores if provided
+  if (!is.null(dimension_scores) && nrow(dimension_scores) > 0) {
+    # Validate dimension scores
+    required_dim_cols <- c("dimension", "domain")
+    if (!all(required_dim_cols %in% names(dimension_scores))) {
+      warning(sprintf("Dimension scores missing required columns: %s. Ignoring dimension scores.", 
+                     paste(setdiff(required_dim_cols, names(dimension_scores)), collapse = ", ")))
+      dimension_scores <- NULL
+    } else {
+      # Check for score column
+      if (!"dimension_score" %in% names(dimension_scores)) {
+        if ("score" %in% names(dimension_scores)) {
+          dimension_scores <- dimension_scores %>%
+            dplyr::rename(dimension_score = score)
+        } else {
+          warning("Dimension scores missing 'score' or 'dimension_score' column. Ignoring dimension scores.")
+          dimension_scores <- NULL
+        }
+      }
+    }
   }
   
   # Create a mapping of domain to x-position (0 to n-1)
@@ -263,13 +278,40 @@ create_dynamics_plot <- function(
     x = seq_along(domain_order) - 1  # 0-based indexing for polar coordinates
   )
   
-  # Add x-positions for polar coordinates
-  plot_domains <- plot_domains %>%
-    dplyr::left_join(domain_x_map, by = "domain")
+  # Prepare plot_domains with proper factor levels and x positions
+  plot_domains <- data.frame(domain = domain_order) %>%
+    dplyr::left_join(
+      domain_scores %>% 
+        dplyr::select(domain, domain_score) %>%
+        dplyr::mutate(domain = as.character(domain)),
+      by = "domain"
+    ) %>%
+    dplyr::left_join(domain_x_map, by = "domain") %>%
+    dplyr::mutate(
+      domain_score = ifelse(is.na(domain_score), 0, domain_score),
+      domain = factor(domain, levels = domain_order),
+      domain_label = as.character(domain)
+    )
+
+  # Prepare color columns
+  if (!is.null(color_palette)) {
+    # Create a named color vector based on domain
+    domain_colors <- setNames(
+      rep(color_palette, length.out = length(domain_order)),
+      domain_order
+    )
+    plot_domains$color_fill <- domain_colors[as.character(plot_domains$domain)]
+    plot_domains$color_border <- plot_domains$color_fill
+  } else {
+    plot_domains$color_fill <- "#edeae2"
+    plot_domains$color_border <- plot_domains$color_fill
+  }
   
-  # Add x-positions to dimension_scores if available
-  if (!is.null(dimension_scores) && all(c("dimension", "domain") %in% names(dimension_scores))) {
-    dimension_scores <- dimension_scores %>%
+  # Add x-positions to dimension_scores if available and valid
+  processed_dimension_scores <- NULL
+  if (!is.null(dimension_scores)) {
+    processed_dimension_scores <- dimension_scores %>%
+      dplyr::mutate(domain = as.character(domain)) %>%
       dplyr::left_join(domain_x_map, by = "domain") %>%
       dplyr::group_by(domain) %>%
       dplyr::mutate(
@@ -280,9 +322,6 @@ create_dynamics_plot <- function(
       ) %>%
       dplyr::ungroup()
   }
-  
-  # Add domain labels
-  plot_domains$domain_label <- as.character(plot_domains$domain)
 
   # Reference lines and labels
   ref_lines <- c(0.25, 0.5, 0.75, 1)
@@ -291,21 +330,21 @@ create_dynamics_plot <- function(
     label = sprintf("%.2f", ref_lines)
   )
 
-  # Set up domain color mapping if color_palette is provided
-  domain_levels <- unique(plot_domains$domain)
+  # Set up domain color mapping
+  domain_levels <- levels(plot_domains$domain)
   palette_named <- NULL
   if (!is.null(color_palette)) {
     palette_named <- setNames(rep(color_palette, length.out = length(domain_levels)), domain_levels)
   }
 
-  # Build main plot with correct geom order: bars (petals), then stamen (segments/points), then domain labels
+  # Build main plot
   main_plot <- ggplot2::ggplot() +
     ggplot2::geom_hline(
       yintercept = ref_lines,
       color = "#E0E0E0", linewidth = 0.25
     ) +
     ggplot2::geom_bar(
-      data = if (exists("plot_domains")) plot_domains else domain_scores,
+      data = plot_domains,
       ggplot2::aes(
         x = x,
         y = domain_score,
@@ -315,11 +354,11 @@ create_dynamics_plot <- function(
     )
 
   # Add stamen geoms if dimension_scores is provided and valid
-  if (!is.null(dimension_scores) && all(c("dimension", "dimension_score", "domain", "x") %in% names(dimension_scores))) {
+  if (!is.null(processed_dimension_scores)) {
     main_plot <- main_plot +
       # Stamen lines
       ggplot2::geom_segment(
-        data = dimension_scores,
+        data = processed_dimension_scores,
         ggplot2::aes(
           x = x,
           y = 0,
@@ -333,7 +372,7 @@ create_dynamics_plot <- function(
       ) +
       # Stamen points
       ggplot2::geom_point(
-        data = dimension_scores,
+        data = processed_dimension_scores,
         ggplot2::aes(
           x = x, 
           y = dimension_score, 
@@ -346,7 +385,7 @@ create_dynamics_plot <- function(
       ) +
       # Dimension labels
       ggplot2::geom_text(
-        data = dimension_scores,
+        data = processed_dimension_scores,
         ggplot2::aes(
           x = x,
           y = dimension_score + 0.05,  # Slightly above the point
@@ -373,27 +412,10 @@ create_dynamics_plot <- function(
       hjust = 0.5,
       vjust = 0.5,
       show.legend = FALSE
-    )
-  
-  # Add domain labels outside the plot
-  if (exists("plot_domains")) {
-    domain_labels <- plot_domains
-  } else {
-    domain_labels <- domain_scores %>%
-      dplyr::group_by(domain) %>%
-      dplyr::summarise(
-        x = first(x),
-        domain_score = first(domain_score),
-        color_fill = first(color_fill),
-        color_border = first(color_border),
-        .groups = 'drop'
-      )
-  }
-  
-  # Add domain labels at the outer edge
-  main_plot <- main_plot +
+    ) +
+    # Add domain labels at the outer edge
     ggplot2::geom_text(
-      data = domain_labels,
+      data = plot_domains,
       ggplot2::aes(
         x = x,
         y = 1.1,  # Position outside the main plot area
@@ -408,7 +430,7 @@ create_dynamics_plot <- function(
       show.legend = FALSE
     )
 
-  # Add color/fill scales with different alpha for fill
+  # Add color/fill scales
   if (!is.null(palette_named)) {
     # Create 50% lighter versions of colors for the fill
     lighten_color <- function(color, factor = 0.5) {
@@ -464,7 +486,7 @@ create_dynamics_plot <- function(
       color = "#E0E0E0", linewidth = 0.25
     ) +
     ggplot2::geom_bar(
-      data = if (exists("plot_domains")) plot_domains else domain_scores,
+      data = plot_domains,
       ggplot2::aes(
         x = x,
         y = domain_score,
@@ -484,7 +506,7 @@ create_dynamics_plot <- function(
       show.legend = FALSE
     ) +
     ggplot2::geom_text(
-      data = if (exists("plot_domains")) plot_domains else domain_scores,
+      data = plot_domains,
       ggplot2::aes(
         y = domain_score + 0.1,  # Slightly lower position
         x = x,
@@ -532,14 +554,20 @@ create_dynamics_plot <- function(
   return(list(preview = preview_plot, main = main_plot))
 }
 
-#' Create cascade effects plot using Vogel spiral and dynamic rings
-#'
-#' @param cascade_df Data frame with columns Degree (1,2,3...) and Score (numeric for each degree)
-#' @param color_palette Optional vector of hex colors for each layer (length must match # of Degrees)
-#' @return A list with two ggplot2 objects: preview and main
-#' @import ggplot2
-#' @import ggforce
-create_cascade_plot <- function(cascade_df, color_palette = NULL) {
+#' Create cascade effects plots
+#' @param cascade_data Data frame with cascade analysis results
+#' @param color_palette Vector of colors for the cascade plot
+#' @return List with preview and main ggplot objects
+create_cascade_plots <- function(cascade_data, color_palette) {
+  # Handle different input structures
+  if (is.data.frame(cascade_data)) {
+    cascade_df <- cascade_data
+  } else if (is.list(cascade_data) && !is.null(cascade_data$cascade)) {
+    cascade_df <- cascade_data$cascade
+  } else {
+    stop("No cascade data available for visualization")
+  }
+
   # Validate and standardize column names
   if (!all(c("Degree", "Score") %in% names(cascade_df))) {
     if (all(c("layer_number", "layer_score") %in% names(cascade_df))) {

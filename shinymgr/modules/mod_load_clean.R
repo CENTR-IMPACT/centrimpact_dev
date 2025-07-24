@@ -247,7 +247,7 @@ mod_load_clean_server <- function(id, project_data) {
             rv$indicators <- main_cleaned$indicators
             rv$dynamics <- main_cleaned$dynamics
             rv$cascade <- main_cleaned$cascade
-            rv$qualtrics_metadata_removed <- isTRUE(main_cleaned$qualtrics_metadata_removed)
+            qualtrics_metadata_removed <- isTRUE(main_cleaned$qualtrics_metadata_removed)
 
             # Log what was stored in local reactive values
             logger::log_info("Local reactive values updated:")
@@ -269,7 +269,7 @@ mod_load_clean_server <- function(id, project_data) {
               logger::log_info("Cascade data updated in workflow: {if(is.list(main_cleaned$cascade)) paste(names(main_cleaned$cascade), collapse=', ') else class(main_cleaned$cascade)}")
             }
           }
-
+          project_data$qualtrics_metadata_removed <- isTRUE(main_cleaned$qualtrics_metadata_removed)
           # Clean alignment data if uploaded
           if (!is.null(rv$alignment_data_file)) {
             update_progress(70, "Reading alignment data file...")
@@ -282,7 +282,7 @@ mod_load_clean_server <- function(id, project_data) {
             alignment_cleaned <- clean_alignment_data(alignment_data_raw)
             # alignment_cleaned is now a list: $data, $qualtrics_metadata_removed
             rv$alignment <- alignment_cleaned$data
-            rv$alignment_qualtrics_metadata_removed <- isTRUE(alignment_cleaned$qualtrics_metadata_removed)
+            alignment_qualtrics_metadata_removed <- isTRUE(alignment_cleaned$qualtrics_metadata_removed)
             logger::log_info("Alignment data cleaned successfully")
             logger::log_info("Cleaned alignment data dimensions: {nrow(rv$alignment)} rows, {ncol(rv$alignment)} columns")
 
@@ -595,96 +595,168 @@ mod_load_clean_server <- function(id, project_data) {
     output$results_ui <- renderUI({
       ns <- session$ns
       
+      # Helper function to safely calculate completeness metrics
+      calculate_completeness <- function(df) {
+        if (is.null(df) || !is.data.frame(df) || nrow(df) == 0 || ncol(df) == 0) {
+          return(list(data_completeness = 0, case_completeness = 0))
+        }
+        
+        total_cells <- nrow(df) * ncol(df)
+        if (total_cells == 0) {
+          return(list(data_completeness = 0, case_completeness = 0))
+        }
+        
+        data_completeness <- round(sum(!is.na(df)) / total_cells * 100, 1)
+        complete_rows <- sum(complete.cases(df))
+        case_completeness <- ifelse(nrow(df) > 0, round(complete_rows / nrow(df) * 100, 1), 0)
+        
+        list(data_completeness = data_completeness, 
+             case_completeness = case_completeness)
+      }
+      
+      # Calculate completeness for each dataset
+      indicators_metrics <- calculate_completeness(project_data$cleaned_data$indicators)
+      alignment_metrics <- calculate_completeness(project_data$cleaned_data$alignment)
+      dynamics_metrics <- calculate_completeness(project_data$cleaned_data$dynamics)
+      cascade_metrics <- calculate_completeness(project_data$cleaned_data$cascade$edges)
+      
+      # Extract metrics
+      indicators_data_completeness <- indicators_metrics$data_completeness
+      indicators_case_completeness <- indicators_metrics$case_completeness
+      alignment_data_completeness <- alignment_metrics$data_completeness
+      alignment_case_completeness <- alignment_metrics$case_completeness
+      dynamics_data_completeness <- dynamics_metrics$data_completeness
+      dynamics_case_completeness <- dynamics_metrics$case_completeness
+      cascade_data_completeness <- cascade_metrics$data_completeness
+      cascade_case_completeness <- cascade_metrics$case_completeness
+
       # Use a single tagList to build the entire UI at once.
       # This is cleaner and avoids the errors from the previous structure.
       tagList(
         # -- INDICATORS SECTION --
-        tags$fieldset(
-          class = "custom-fieldset",
-          style = "margin-bottom: 2rem;",
-          tags$legend(
-            class = "custom-legend",
-            "INDICATORS"
+        metric_section_ui(
+          data = project_data$cleaned_data$indicators,
+          
+          # Value box parameters
+          title = "Indicators Data",
+          value = nrow(project_data$cleaned_data$indicators),
+          round_to = 0,
+          value_subtitle = "Records Processed",
+          
+          # Card parameters  
+          card_header_text = "Ready for Analysis",
+          card_body = create_metrics_taglist(
+            data_completeness = indicators_data_completeness,
+            case_completeness = indicators_case_completeness,
+            qualtrics_metadata_removed = project_data$qualtrics_metadata_removed
           ),
-          metric_section_ui(
-            data = rv$indicators,
-            value_box_title = "indicators",
-            score = if (!is.null(rv$indicators)) nrow(rv$indicators) else 0,
-            type = "indicators",
-            bgcolor = "#7E8480",
-            icon_choice = ph_i("gauge", weight = "regular", size = "4x", style = "color:rgba(255,255,255,0.8);"),
-            input_id = "view_indicators_overlay",
-            ns = ns,
-            section_name = "INDICATORS",
-            placeholder_title = "No Indicators Data",
-            placeholder_text = "Upload and clean your data to view indicators here.",
-            placeholder_icon = ph("warning-circle", weight = "bold", size = "2x", style = "color: #bf8f36;margin-bottom:0.25rem;"),
-            qualtrics_metadata_removed = rv$qualtrics_metadata_removed
-          )
+          card_footer_button_text = "VIEW Data Table", 
+          card_footer_button_id = "view_dynamics_overlay",
+          
+          # Placeholder parameters (shown when data is NULL/empty)
+          placeholder_title = "No Project Indicators Data",
+          placeholder_text = "Upload data to begin",
+          placeholder_icon = ph("upload", weight = "fill", size = "2x"),
+          
+          # Required namespace function
+          ns = ns,
+          
+          # Custom fieldset title (defaults to 'title' if not provided)
+          fieldset_title = "Project Indicators"
         ),
+
         # -- ALIGNMENT SECTION --
-        tags$fieldset(
-          class = "custom-fieldset",
-          style = "margin-bottom: 1em;",
-          tags$legend(class = "custom-legend", "Alignment"),
-          metric_section_ui(
-            data = rv$alignment,
-            value_box_title = "Alignment",
-            score = if (!is.null(rv$alignment)) nrow(rv$alignment) else 0,
-            type = "alignment",
-            bgcolor = "#A08E6F",
-            icon_choice = ph_i("flower-lotus", weight = "bold", size = "4x"),
-            input_id = "view_alignment_overlay",
-            extra_info = if (isTRUE(rv$alignment_qualtrics_metadata_removed)) "Qualtrics Metadata Removed" else NULL,
-            ns = ns,
-            section_name = "Alignment",
-            placeholder_title = "No Alignment Data",
-            placeholder_text = "Upload and clean your data to view alignment here.",
-            placeholder_icon = ph("warning-circle", weight = "bold", class = "warning-icon"),
-            qualtrics_metadata_removed = NULL
-          )
+        metric_section_ui(
+          data = project_data$cleaned_data$alignment,
+          
+          # Value box parameters
+          title = "Project Alignment Data",
+          value = nrow(project_data$cleaned_data$alignment),
+          round_to = 0,
+          value_subtitle = "Records Processed",
+          
+          # Card parameters  
+          card_header_text = "Ready for Analysis",
+          card_body = create_metrics_taglist(
+            data_completeness = alignment_data_completeness,
+            case_completeness = alignment_case_completeness,
+            qualtrics_metadata_removed = project_data$qualtrics_metadata_removed
+          ),
+          card_footer_button_text = "VIEW Data Table", 
+          card_footer_button_id = "view_alignment_overlay",
+          
+          # Placeholder parameters (shown when data is NULL/empty)
+          placeholder_title = "No Project Alignment Data",
+          placeholder_text = "Upload data to begin",
+          placeholder_icon = ph("upload", weight = "fill", size = "2x"),
+          
+          # Required namespace function
+          ns = ns,
+          
+          # Custom fieldset title (defaults to 'title' if not provided)
+          fieldset_title = "Project Alignment"
         ),
         # -- DYNAMICS SECTION --
-        tags$fieldset(
-          class = "custom-fieldset",
-          style = "margin-bottom: 1em;",
-          tags$legend(class = "custom-legend", "Dynamics"),
-          metric_section_ui(
-            data = rv$dynamics,
-            value_box_title = "Dynamics",
-            score = if (!is.null(rv$dynamics)) nrow(rv$dynamics) else 0,
-            type = "dynamics",
-            bgcolor = "#88707E",
-            icon_choice = ph_i("pulse", weight = "bold", size = "4x"),
-            input_id = "view_dynamics_overlay",
-            ns = ns,
-            section_name = "Dynamics",
-            placeholder_title = "No Dynamics Data",
-            placeholder_text = "Upload and clean your data to view dynamics here.",
-            placeholder_icon = ph("warning-circle", weight = "bold", class = "warning-icon"),
-            qualtrics_metadata_removed = rv$qualtrics_metadata_removed
-          )
+        metric_section_ui(
+          data = project_data$cleaned_data$dynamics,
+          
+          # Value box parameters
+          title = "Project Dynamics Data",
+          value = nrow(project_data$cleaned_data$dynamics),
+          round_to = 0,
+          value_subtitle = "Records Processed",
+          
+          # Card parameters  
+          card_header_text = "Ready for Analysis",
+          card_body = create_metrics_taglist(
+            data_completeness = dynamics_data_completeness,
+            case_completeness = dynamics_case_completeness,
+            qualtrics_metadata_removed = project_data$qualtrics_metadata_removed
+          ),
+          card_footer_button_text = "VIEW Data Table", 
+          card_footer_button_id = "view_dynamics_overlay",
+          
+          # Placeholder parameters (shown when data is NULL/empty)
+          placeholder_title = "No Project Dynamics Data",
+          placeholder_text = "Upload data to begin",
+          placeholder_icon = ph("upload", weight = "fill", size = "2x"),
+          
+          # Required namespace function
+          ns = ns,
+          
+          # Custom fieldset title (defaults to 'title' if not provided)
+          fieldset_title = "Project Dynamics"
         ),
         # -- CASCADE SECTION --
-        tags$fieldset(
-          class = "custom-fieldset",
-          style = "margin-bottom: 1em;",
-          tags$legend(class = "custom-legend", "Cascade Effects"),
-          metric_section_ui(
-            data = if (!is.null(project_data$cleaned_data$cascade) && !is.null(project_data$cleaned_data$cascade$edges)) project_data$cleaned_data$cascade$edges else NULL,
-            value_box_title = "Cascade Effects",
-            score = if (!is.null(project_data$cleaned_data$cascade) && !is.null(project_data$cleaned_data$cascade$edges)) nrow(project_data$cleaned_data$cascade$edges) else 0,
-            type = "cascade",
-            bgcolor = "#B49291",
-            icon_choice = ph_i("waveform", weight = "bold", size = "4x"),
-            input_id = "view_cascade_overlay",
-            ns = ns,
-            section_name = "Cascade Effects",
-            placeholder_title = "No Cascade Effects Data",
-            placeholder_text = "Upload and clean your data to view cascade effects here.",
-            placeholder_icon = ph("warning-circle", weight = "bold", class = "warning-icon"),
-            qualtrics_metadata_removed = rv$qualtrics_metadata_removed
-          )
+        metric_section_ui(
+          data = project_data$cleaned_data$cascade$edges,
+          
+          # Value box parameters
+          title = "Cascade Effects Data",
+          value = nrow(project_data$cleaned_data$cascade$edges),
+          round_to = 0,
+          value_subtitle = "Records Processed",
+          
+          # Card parameters  
+          card_header_text = "Ready for Analysis",
+          card_body = create_metrics_taglist(
+            data_completeness = cascade_data_completeness,
+            case_completeness = cascade_case_completeness,
+            qualtrics_metadata_removed = project_data$qualtrics_metadata_removed
+          ),
+          card_footer_button_text = "VIEW Data Table", 
+          card_footer_button_id = "view_cascade_overlay",
+          
+          # Placeholder parameters (shown when data is NULL/empty)
+          placeholder_title = "No Cascade Effects Data",
+          placeholder_text = "Upload data to begin",
+          placeholder_icon = ph("upload", weight = "fill", size = "2x"),
+          
+          # Required namespace function
+          ns = ns,
+          
+          # Custom fieldset title (defaults to 'title' if not provided)
+          fieldset_title = "Cascade Effects"
         ),
         # -- OVERLAY UI OUTPUTS --
         uiOutput(ns("indicators_overlay_ui")),
@@ -701,6 +773,88 @@ mod_load_clean_server <- function(id, project_data) {
 # =================================================================================================
 # Helper Functions
 # =================================================================================================
+
+#' Create Metrics TagList
+#' 
+#' Creates a tagList containing data completeness, case completeness, and cleaning status indicators.
+#' 
+#' @param data_completeness Numeric value (0-100) representing data completeness percentage
+#' @param case_completeness Numeric value (0-100) representing case completeness percentage
+#' @param qualtrics_metadata_removed Logical indicating if Qualtrics metadata was removed
+#' 
+#' @return A shiny.tag.list object containing the metrics display
+#' @export
+create_metrics_taglist <- function(data_completeness, case_completeness, qualtrics_metadata_removed = NULL) {
+  tagList(
+    tags$div(
+      class = "row",
+      # Data Completeness Column
+      tags$div(
+        class = "col-6",
+        style = "font-size:0.8rem;line-height:1.14;color: var(--bs-primary);",
+        tags$div(
+          class = "d-flex align-items-start mb-1",
+          ph("check-circle",
+             weight = "regular", size = "1.5x",
+             style = "color: var(--bs-primary); margin-right:0.36rem; margin-top:0.05rem;"
+          ),
+          tags$div(
+            tags$strong("Data Completeness", style = "color: var(--bs-primary); text-transform: uppercase;"),
+            tags$br(),
+            tags$span(
+              style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace);",
+              paste0(data_completeness, "%")
+            )
+          )
+        )
+      ),
+      # Case Completeness Column
+      tags$div(
+        class = "col-6",
+        style = "font-size:0.8rem;line-height:1.14;color: var(--bs-primary);",
+        tags$div(
+          class = "d-flex align-items-start",
+          ph("check-circle",
+             weight = "regular", size = "1.5x",
+             style = "color: var(--bs-primary); margin-right:0.36rem; margin-top:0.05rem;"
+          ),
+          tags$div(
+            tags$strong("Case Completeness", style = "color: var(--bs-primary); text-transform: uppercase;"),
+            tags$br(),
+            tags$span(
+              style = "color: var(--bs-primary); text-transform: uppercase; font-family: var(--bs-font-monospace);",
+              paste0(case_completeness, "%")
+            )
+          )
+        )
+      )
+    ),
+    # Cleaning Status Row
+    tags$div(
+      class = "row",
+      style = "font-size:0.8rem;line-height:1.14;color:#8A7A8F;",
+      tags$div(
+        class = "d-flex align-items-start mb-1",
+        ph("check-circle",
+           weight = "regular", size = "1.5x",
+           style = "color: var(--bs-primary); margin-right:0.36rem; margin-top:0.05rem;"
+        ),
+        tags$div(
+          tags$strong("Cleaned", style = "color: var(--bs-primary); text-transform: uppercase;"),
+          tags$br(),
+          tags$span(
+            style = "color: var(--bs-primary); text-transform: uppercase;",
+            if (!is.null(qualtrics_metadata_removed) && isTRUE(qualtrics_metadata_removed)) {
+              "Qualtrics Metadata Removed, "
+            },
+            "Data Structure Verified"
+          )
+        )
+      )
+    )
+  )
+}
+
 
 #' Generate Cascade YAML
 #'
@@ -798,7 +952,7 @@ create_static_network_plot <- function(cascade_data) {
 
 # Helper: create_score_value_box (local copy)
 
-create_score_value_box <- function(title, score, type, bgcolor, icon_choice = ph_i("circle")) {
+create_score_value_box2 <- function(title, score, type, bgcolor, icon_choice = ph_i("circle")) {
   score_display <- round(score, 0)
 
   bslib::value_box(
@@ -855,7 +1009,7 @@ create_score_value_box <- function(title, score, type, bgcolor, icon_choice = ph
 #' @param placeholder_icon Icon for the placeholder (if no data)
 #' @param qualtrics_metadata_removed Logical indicating if qualtrics metadata was removed.
 #' @return The inner layout (layout_columns(...)) for the metric section
-metric_section_ui <- function(data, value_box_title, score, type, bgcolor, icon_choice, input_id, extra_info = NULL, ns, section_name, placeholder_title, placeholder_text, placeholder_icon, qualtrics_metadata_removed = NULL) {
+metric_section_ui2 <- function(data, value_box_title, score, type, bgcolor, icon_choice, input_id, extra_info = NULL, ns, section_name, placeholder_title, placeholder_text, placeholder_icon, qualtrics_metadata_removed = NULL) {
   # If qualtrics_metadata_removed is TRUE, override extra_info (except for Alignment)
   if (!is.null(qualtrics_metadata_removed) && isTRUE(qualtrics_metadata_removed)) {
     extra_info <- "Qualtrics Metadata Removed"

@@ -1,11 +1,258 @@
 # Reusable UI Components for shinymgr
 # This file contains reusable UI components that can be used across different modules
 
-create_status_card <- function(ns,
-                               show_workflow_icons = TRUE,
-                               show_score_displays = TRUE,
-                               show_report_icons = TRUE,
-                               show_project_info = TRUE) {
+# Import required functions from bslib
+#' @importFrom bslib value_box_theme
+
+#' Metric Section UI
+#'
+#' Generates a two-column layout with a value box/placeholder on the left and a details card on the right.
+#' This function is designed to be flexible, allowing complete customization of all card sections
+#' using tagList for maximum flexibility across different modules.
+#'
+#' @param data The data frame to check (e.g., rv$indicators). If NULL or has 0 rows, shows a placeholder.
+#' @param title Title for the value box and fieldset legend
+#' @param value The value to display in the value box (numeric or ggplot object)
+#' @param card_header_text Text to display in the card header
+#' @param card_body UI elements to display in the card body
+#' @param card_footer_button_text Text for the footer button
+#' @param card_footer_button_id ID for the footer button (will be namespaced)
+#' @param placeholder_title Title for the placeholder (shown when no data)
+#' @param placeholder_text Text for the placeholder (shown when no data)
+#' @param placeholder_icon Icon for the placeholder (shown when no data)
+#' @param ns Namespace function for Shiny module
+#' @param fieldset_title Optional title for the fieldset (defaults to title if not provided)
+#' @return A fieldset containing a two-column layout with a value box and details card
+metric_section_ui <- function(data,
+                              # Value box parameters
+                              title,
+                              value,
+                              round_to = 2,
+                              value_subtitle = NULL,  # Optional content below value
+                              # Card parameters
+                              card_header_text,
+                              card_body,
+                              card_footer_button_text,
+                              card_footer_button_id,
+                              # Placeholder parameters
+                              placeholder_title,
+                              placeholder_text,
+                              placeholder_icon,
+                              # Namespace function
+                              ns,
+                              # Fieldset title (defaults to title if not provided)
+                              fieldset_title = NULL) {
+  
+  # Auto-assign background color and icon based on title
+  icon_color <- rgb(245, 241, 232, maxColorValue = 255, alpha = 125)
+  title_lower <- tolower(title)
+  if (grepl("indicators", title_lower)) {
+    bgcolor <- "#7E8480"
+    icon <- ph_i("gauge", weight = "thin", size = "8x", color = icon_color)
+  } else if (grepl("alignment", title_lower)) {
+    bgcolor <- "#A08E6F"
+    icon <- ph_i("flower-lotus", weight = "thin", size = "8x", color = icon_color)
+  } else if (grepl("dynamics", title_lower)) {
+    bgcolor <- "#88707E"
+    icon <- ph_i("pulse", weight = "thin", size = "8x", color = icon_color)
+  } else if (grepl("cascade", title_lower)) {
+    bgcolor <- "#B49291"
+    icon <- ph_i("waveform", weight = "thin", size = "8x", color = icon_color)
+  } else {
+    # Default fallback
+    bgcolor <- "#6c757d"
+    icon <- ph_i("circle", weight = "thin", size = "8x", color = icon_color)
+  }
+  
+  # Handle NULL or NA value - use any() to handle vectors
+  if (is.null(value) || any(is.na(value))) {
+    value <- "N/A"
+  } else if (length(value) > 1) {
+    # If value is a vector with length > 1, take the first element
+    value <- value[1]
+  }
+  
+  # Use title for fieldset if fieldset_title not provided
+  if (is.null(fieldset_title)) {
+    fieldset_title <- title
+  }
+  
+  cols <- list(
+    # LEFT SIDE: Value Box or Placeholder
+    if (is.null(data)) {
+      # Placeholder when no data - updated to match standard look
+      bslib::value_box(
+        style = "
+          padding: 0.25em !important;
+          border-radius: 10px 0 0 10px !important;
+          border: 1px 0 1px 1px !important;
+          border-style: solid !important;
+          border-color: #d4c5b9 !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;",
+        title = tags$div(
+          "",
+          class = "text-uppercase fw-semibold",
+          style = "font-size: 0rem;"
+        ),
+        value = tags$div(
+          style = "
+            font-size: 3rem;
+            font-weight: 600;
+            line-height: 1;
+            color: #6c5a47;
+            text-align: center;",
+          placeholder_icon,
+          tags$div(
+            style = "font-size: 0.9rem; margin-top: 0.5rem; color: #6c5a47;",
+            placeholder_title
+          )
+        ),
+        theme = bslib::value_box_theme(bg = "#f5f0e8", fg = "#6c5a47"),
+        tags$div(
+          class = "text-uppercase fw-normal",
+          style = "
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            color: #6c5a47;
+            text-align: center;",
+          placeholder_text
+        )
+      )
+    } else {
+      # Value box when data exists
+      bslib::value_box(
+        style = "
+          padding: 0.25em !important;
+          border-radius: 10px 0 0 10px !important;
+          border: 1px 0 1px 1px !important;
+          border-style: solid !important;
+          border-color: #d4c5b9 !important;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;",
+        title = tags$div(
+          class = "text-uppercase fw-normal",
+          style = "
+            font-size: 1.1rem;
+            margin-top: 0.25rem;
+            color: #f5f1e8;",
+          title
+        ),
+        value = if (inherits(value, "ggplot")) {
+          # Display ggplot
+          tags$div(
+            style = "
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100%;
+              padding: 0.5rem;",
+            plotOutput(
+              outputId = paste0("plot_", gsub("[^A-Za-z0-9]", "_", title)),
+              height = "120px",
+              width = "100%"
+            )
+          )
+        } else {
+          # Display numeric value
+          tags$div(
+            round(as.numeric(value), round_to),
+            class = "font-monospace",
+            style = "
+              font-size: 5rem;
+              font-weight: 600;
+              line-height: 1;
+              color: #f5f1e8;"
+          )
+        },
+        showcase = icon,
+        showcase_layout = "left center",
+        theme = bslib::value_box_theme(bg = bgcolor, fg = "#f5f1e8"),
+        # Optional subtitle content below the title
+        if (!is.null(value_subtitle)) {
+          tags$div(
+            class = "text-uppercase font-monospace",
+            style = "
+              font-size: 0.75rem;
+              margin-top: 0.1rem;
+              color: #f5f1e8;
+              opacity: 0.9;",
+            value_subtitle
+          )
+        }
+      )
+    },
+    
+    # RIGHT SIDE: Details Card (always show when data exists)
+    if (!is.null(data) && nrow(data) > 0) {
+      bslib::card(
+        style = "
+          padding: 0 !important;
+          border-radius: 0 8px 8px 0 !important;
+          border: 1px 1px 1px 0; 
+          border-style: solid; 
+          border-color: #d4c5b9 !important;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+          background: #f9f5f0;",
+        
+        # Header
+        bslib::card_header(
+          style = "background-color: #f9f5f0; border-bottom: 1px solid #e8ddd4; padding: 0.5rem 1rem;",
+          tags$div(
+            class = "fw-medium text-center",
+            style = "font-size: 1rem; color: var(--bs-body-color);",
+            card_header_text
+          )
+        ),
+        
+        # Body (passed through directly)
+        bslib::card_body(
+          style = "padding: 0.5rem; background: var(--bs-body-bg); overflow-x: hidden;",
+          card_body
+        ),
+        
+        # Footer with button
+        bslib::card_footer(
+          style = "background: var(--bs-body-bg); border-top: 1px solid #e8ddd4; padding: 0.5rem 1rem; text-align: center;",
+          actionButton(
+            inputId = ns(card_footer_button_id),
+            label = tagList(
+              ph("table", weight = "fill", style = "margin-right: 0.45rem;"),
+              card_footer_button_text
+            ),
+            class = "text-uppercase fw-semibold",
+            style = "
+              background-color: #8A7A8F; 
+              color: var(--bs-body-bg); 
+              border: none;
+              padding: 0.44rem 1.1rem;
+              font-size: 0.7rem;
+              letter-spacing: 0.4px;
+              border-radius: 6px;"
+          )
+        )
+      )
+    }
+  )
+  
+  # Filter out NULL columns and create layout
+  cols <- Filter(Negate(is.null), cols)
+  
+  # Wrap in fieldset
+  tags$fieldset(
+    class = "custom-fieldset",
+    style = "margin-bottom: 1em;",
+    tags$legend(class = "custom-legend", fieldset_title),
+    layout_columns(col_widths = c(5, 7), gap = 0, !!!cols)
+  )
+}
+
+
+create_status_card <- function(
+    ns,
+    show_workflow_icons = TRUE,
+    show_score_displays = TRUE,
+    show_report_icons = TRUE,
+    show_project_info = TRUE
+) {
   # Build the card body content based on parameters
   card_content <- list(
     # div(
@@ -574,3 +821,5 @@ create_status_output <- function(ns, status_state, session = NULL) {
 #        })
 #      })
 #    }
+
+# End of file
